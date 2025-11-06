@@ -24,6 +24,10 @@ export async function POST(request: Request) {
       country,
       province,
       employmentType,
+      preScreeningQuestions,
+      cvSecretPrompt,
+      aiInterviewScreening,
+      aiInterviewSecretPrompt,
     } = await request.json();
     // Validate required fields
     if (!jobTitle || !description || !questions || !location || !workSetup) {
@@ -46,21 +50,21 @@ export async function POST(request: Request) {
       },
       {
         $lookup: {
-            from: "organization-plans",
-            let: { planId: "$planId" },
-            pipeline: [
-                {
-                    $addFields: {
-                        _id: { $toString: "$_id" }
-                    }
-                },
-                {
-                    $match: {
-                        $expr: { $eq: ["$_id", "$$planId"] }
-                    }
-                }
-            ],
-            as: "plan"
+          from: "organization-plans",
+          let: { planId: "$planId" },
+          pipeline: [
+            {
+              $addFields: {
+                _id: { $toString: "$_id" }
+              }
+            },
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$planId"] }
+              }
+            }
+          ],
+          as: "plan"
         }
       },
       {
@@ -101,6 +105,10 @@ export async function POST(request: Request) {
       country,
       province,
       employmentType,
+      preScreeningQuestions: preScreeningQuestions || [],
+      cvSecretPrompt: cvSecretPrompt || "",
+      aiInterviewScreening: aiInterviewScreening || "Good Fit and above",
+      aiInterviewSecretPrompt: aiInterviewSecretPrompt || "",
     };
 
     await db.collection("careers").insertOne(career);
