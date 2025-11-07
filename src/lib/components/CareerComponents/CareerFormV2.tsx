@@ -383,17 +383,18 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
 
             try {
                 let response;
-                if (mode === "edit" && career?._id) {
+                // Update if in edit mode OR if we have a draftId (existing draft being published)
+                if ((mode === "edit" && career?._id) || draftId) {
                     // Update existing career
                     response = await axios.post("/api/update-career", {
                         ...careerData,
-                        _id: career._id,
+                        _id: draftId || career._id,
                         updatedAt: Date.now(),
                     });
                     if (response.status === 200) {
                         candidateActionToast(
                             <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Career updated successfully</span>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Career {status === "active" ? "published" : "updated"} successfully</span>
                             </div>,
                             1300,
                             <i className="la la-check-circle" style={{ color: "#039855", fontSize: 32 }}></i>)
@@ -402,7 +403,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                 onClose();
                                 window.location.reload();
                             } else {
-                                window.location.href = `/recruiter-dashboard/careers/manage/${career._id}`;
+                                window.location.href = `/recruiter-dashboard/careers`;
                             }
                         }, 1300);
                     }
@@ -581,9 +582,34 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                     <button
                         disabled={isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())}
                         style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
-                        onClick={mode === "edit" ? (isDraft ? saveDraftAndContinue : () => confirmSaveCareer(career?.status || "active")) : saveDraftAndContinue}>
+                        onClick={() => {
+                            if (mode === "edit") {
+                                // Edit mode logic
+                                if (isDraft) {
+                                    // If on last step, publish instead of continue
+                                    if (currentStep === step[step.length - 1]) {
+                                        confirmSaveCareer("active");
+                                    } else {
+                                        saveDraftAndContinue();
+                                    }
+                                } else {
+                                    confirmSaveCareer(career?.status || "active");
+                                }
+                            } else {
+                                // Create mode logic
+                                if (currentStep === step[step.length - 1]) {
+                                    confirmSaveCareer("active");
+                                } else {
+                                    saveDraftAndContinue();
+                                }
+                            }
+                        }}>
                         <i className="la la-check-circle" style={{ color: "#fff", fontSize: 20, marginRight: 8 }}></i>
-                        {mode === "edit" ? (isDraft ? "Save and Continue" : "Save Changes") : "Save and Continue"}
+                        {mode === "edit" 
+                            ? (isDraft 
+                                ? (currentStep === step[step.length - 1] ? "Publish" : "Save and Continue")
+                                : "Save Changes")
+                            : (currentStep === step[step.length - 1] ? "Publish" : "Save and Continue")}
                     </button>
                 </div>
             </div>

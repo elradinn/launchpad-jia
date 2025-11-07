@@ -170,6 +170,7 @@ export default function ManageCareerPage() {
         screeningSetting: "",
         requireVideo: false,
         directInterviewLink: "",
+        preScreeningQuestions: [],
     });
     const [showCandidateHistory, setShowCandidateHistory] = useState(false);
     const [selectedCandidateHistory, setSelectedCandidateHistory] = useState<any>({});
@@ -290,6 +291,7 @@ export default function ManageCareerPage() {
                     employmentType: response.data?.employmentType || "Full-time",
                     orgID: response.data?.orgID || "",
                     unpublishedLatestStep: response.data?.unpublishedLatestStep || "Career Details & Team Access",
+                    preScreeningQuestions: response.data?.preScreeningQuestions || [],
                 });
                 if (tab === "edit") {
                     setActiveTab("job-description");
@@ -352,6 +354,7 @@ export default function ManageCareerPage() {
             status: career?.status || "",
             screeningSetting: career?.screeningSetting || "",
             requireVideo: career?.requireVideo === null || career?.requireVideo === undefined ? true : career?.requireVideo,
+            preScreeningQuestions: career?.preScreeningQuestions || [],
         });
         setIsEditing(false);
     }
@@ -987,33 +990,27 @@ export default function ManageCareerPage() {
                                                         fontSize: 12,
                                                         fontWeight: 600
                                                     }}>
-                                                        3
+                                                        {formData.preScreeningQuestions?.length || 0}
                                                     </span>
                                                 </div>
                                                 <ol style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "#181D27", lineHeight: 2 }}>
-                                                    <li style={{ marginBottom: 12 }}>
-                                                        <div style={{ fontWeight: 500, marginBottom: 4 }}>How long is your notice period?</div>
-                                                        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
-                                                            <li>Immediately</li>
-                                                            <li>&lt; 30 days</li>
-                                                            <li>&gt; 30 days</li>
-                                                        </ul>
-                                                    </li>
-                                                    <li style={{ marginBottom: 12 }}>
-                                                        <div style={{ fontWeight: 500, marginBottom: 4 }}>How often are you willing to report to the office?</div>
-                                                        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
-                                                            <li>At most 1-2x a week</li>
-                                                            <li>At most 3-4x a week</li>
-                                                            <li>Open to fully onsite work</li>
-                                                            <li>Only open to fully remote work</li>
-                                                        </ul>
-                                                    </li>
-                                                    <li style={{ marginBottom: 12 }}>
-                                                        <div style={{ fontWeight: 500, marginBottom: 4 }}>How much is your expected monthly salary?</div>
-                                                        <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
-                                                            Preferred: PHP 40,000 - PHP 60,000
-                                                        </div>
-                                                    </li>
+                                                    {formData.preScreeningQuestions?.map((q, idx) => (
+                                                        <li key={q.id || idx} style={{ marginBottom: 12 }}>
+                                                            <div style={{ fontWeight: 500, marginBottom: 4 }}>{q.question}</div>
+                                                            {q.type === "Dropdown" && q.options?.length > 0 && (
+                                                                <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
+                                                                    {q.options.map((opt, optIdx) => (
+                                                                        <li key={optIdx}>{opt}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            )}
+                                                            {q.type === "Range" && (
+                                                                <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
+                                                                    Preferred: PHP {q.rangeMin?.toLocaleString()} - PHP {q.rangeMax?.toLocaleString()}
+                                                                </div>
+                                                            )}
+                                                        </li>
+                                                    ))}
                                                 </ol>
                                             </div>
                                         </div>
