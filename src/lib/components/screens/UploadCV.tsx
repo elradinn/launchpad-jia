@@ -25,6 +25,8 @@ export default function () {
   const [interview, setInterview] = useState(null);
   const [screeningResult, setScreeningResult] = useState(null);
   const [userCV, setUserCV] = useState(null);
+  const [preScreeningQuestions, setPreScreeningQuestions] = useState([]);
+  const [preScreeningAnswers, setPreScreeningAnswers] = useState({});
   const cvSections = [
     "Introduction",
     "Current Position",
@@ -36,7 +38,7 @@ export default function () {
     "Certifications",
     "Awards",
   ];
-  const step = ["Submit CV", "CV Screening", "Review Next Steps"];
+  const step = ["Submit CV", "Pre-screening Questions", "Review"];
   const stepStatus = ["Completed", "Pending", "In Progress"];
 
   function handleDragOver(e) {
@@ -185,7 +187,13 @@ export default function () {
           } else {
             setCurrentStep(step[0]);
             setInterview(result[0]);
-            setLoading(false);
+            
+            // Fetch career data to get pre-screening questions
+            if (result[0].id) {
+              fetchCareerData(result[0].id);
+            } else {
+              setLoading(false);
+            }
           }
         }
       })
@@ -196,7 +204,44 @@ export default function () {
       });
   }
 
-  function handleCVScreen() {
+  function fetchCareerData(careerID) {
+    axios({
+      method: "POST",
+      url: "/api/fetch-career-data",
+      data: { careerID },
+    })
+      .then((res) => {
+        const career = res.data;
+        console.log("Career data fetched:", career);
+        console.log("Pre-screening questions:", career.preScreeningQuestions);
+        
+        if (career.preScreeningQuestions && career.preScreeningQuestions.length > 0) {
+          setPreScreeningQuestions(career.preScreeningQuestions);
+          console.log("Set pre-screening questions:", career.preScreeningQuestions);
+          
+          // Initialize answers object
+          const initialAnswers = {};
+          career.preScreeningQuestions.forEach((q) => {
+            if (q.type === "Range") {
+              initialAnswers[q.id] = { min: "", max: "" };
+            } else {
+              initialAnswers[q.id] = "";
+            }
+          });
+          setPreScreeningAnswers(initialAnswers);
+        } else {
+          console.log("No pre-screening questions found");
+        }
+        
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.log("Error fetching career data:", err);
+        setLoading(false);
+      });
+  }
+
+  function handleContinueToPreScreening() {
     if (editingCV != null) {
       alert("Please save the changes first.");
       return false;
@@ -228,49 +273,97 @@ export default function () {
       }
     }
 
-    setCurrentStep(step[1]);
-
+    // Save CV if there are changes
     if (hasChanges) {
-      const formattedUserCV = cvSections.map((section) => ({
-        name: section,
-        content: userCV[section]?.trim() || "",
-      }));
-
-      parsedDigitalCV.digitalCV = formattedUserCV;
-
-      const data = {
-        name: user.name,
-        cvData: parsedDigitalCV,
-        email: user.email,
-        fileInfo: null,
-      };
-
-      if (file) {
-        data.fileInfo = {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        };
-      }
-
-      axios({
-        method: "POST",
-        url: `/api/whitecloak/save-cv`,
-        data,
-      })
-        .then(() => {
-          localStorage.setItem(
-            "userCV",
-            JSON.stringify({ ...data, ...data.cvData })
-          );
-        })
-        .catch((err) => {
-          alert("Error saving CV. Please try again.");
-          setCurrentStep(step[0]);
-          console.log(err);
-        });
+      saveCV();
     }
 
+    // Move to Pre-screening Questions step or directly to CV screening
+    console.log("Pre-screening questions count:", preScreeningQuestions.length);
+    console.log("Pre-screening questions:", preScreeningQuestions);
+    
+    if (preScreeningQuestions.length > 0) {
+      console.log("Moving to pre-screening questions step");
+      setCurrentStep(step[1]);
+    } else {
+      console.log("No pre-screening questions, moving to CV screening");
+      // If no pre-screening questions, proceed directly to CV screening
+      setCurrentStep(step[2]);
+      performCVScreening();
+    }
+  }
+
+  function saveCV() {
+    let parsedDigitalCV = {
+      errorRemarks: null,
+      digitalCV: null,
+    };
+
+    if (digitalCV) {
+      parsedDigitalCV = JSON.parse(digitalCV);
+    }
+
+    const formattedUserCV = cvSections.map((section) => ({
+      name: section,
+      content: userCV[section]?.trim() || "",
+    }));
+
+    parsedDigitalCV.digitalCV = formattedUserCV;
+
+    const data = {
+      name: user.name,
+      cvData: parsedDigitalCV,
+      email: user.email,
+      fileInfo: null,
+    };
+
+    if (file) {
+      data.fileInfo = {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      };
+    }
+
+    axios({
+      method: "POST",
+      url: `/api/whitecloak/save-cv`,
+      data,
+    })
+      .then(() => {
+        localStorage.setItem(
+          "userCV",
+          JSON.stringify({ ...data, ...data.cvData })
+        );
+        setHasChanges(false);
+      })
+      .catch((err) => {
+        alert("Error saving CV. Please try again.");
+        setCurrentStep(step[0]);
+        console.log(err);
+      });
+  }
+
+  function handlePreScreeningSubmit() {
+    // Validate all questions are answered
+    const unanswered = preScreeningQuestions.filter((q) => {
+      if (q.type === "Range") {
+        return !preScreeningAnswers[q.id]?.min || !preScreeningAnswers[q.id]?.max;
+      }
+      return !preScreeningAnswers[q.id];
+    });
+
+    if (unanswered.length > 0) {
+      alert("Please answer all pre-screening questions before continuing.");
+      return;
+    }
+
+    // Move to Review step and perform CV screening
+    setCurrentStep(step[2]);
+    performCVScreening();
+  }
+
+  function performCVScreening() {
     setHasChanges(true);
 
     axios({
@@ -279,6 +372,7 @@ export default function () {
       data: {
         interviewID: interview.interviewID,
         userEmail: user.email,
+        preScreeningAnswers: preScreeningAnswers,
       },
     })
       .then((res) => {
@@ -286,15 +380,14 @@ export default function () {
 
         if (result.error) {
           alert(result.message);
-          setCurrentStep(step[0]);
+          setCurrentStep(step[1]);
         } else {
-          setCurrentStep(step[2]);
           setScreeningResult(result);
         }
       })
       .catch((err) => {
         alert("Error screening CV. Please try again.");
-        setCurrentStep(step[0]);
+        setCurrentStep(step[1]);
         console.log(err);
       })
       .finally(() => {
@@ -602,13 +695,150 @@ export default function () {
                       </div>
                     </div>
                   ))}
-                  <button onClick={handleCVScreen}>Submit CV</button>
+                  <button onClick={handleContinueToPreScreening}>Continue</button>
                 </div>
               )}
             </>
           )}
 
           {currentStep == step[1] && (
+            <div className={styles.cvDetailsContainer}>
+              <div style={{ marginBottom: "24px" }}>
+                <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#181D27", marginBottom: "8px" }}>
+                  Quick Pre-screening
+                </h2>
+                <p style={{ fontSize: "14px", color: "#6B7280", margin: 0 }}>
+                  Just a few short questions to help your recruiters assess you faster. Takes less than a minute.
+                </p>
+              </div>
+
+              {preScreeningQuestions.map((question, index) => (
+                <div key={question.id} className={styles.gradient}>
+                  <div className={styles.cvDetailsCard}>
+                    <span className={styles.sectionTitle}>
+                      {question.question}
+                    </span>
+                    <div className={styles.detailsContainer}>
+                      {question.type === "Dropdown" ? (
+                        <select
+                          value={preScreeningAnswers[question.id] || ""}
+                          onChange={(e) =>
+                            setPreScreeningAnswers({
+                              ...preScreeningAnswers,
+                              [question.id]: e.target.value,
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "12px",
+                            borderRadius: "8px",
+                            border: "1px solid #E5E7EB",
+                            fontSize: "14px",
+                            backgroundColor: "#fff",
+                          }}
+                        >
+                          <option value="">Select an option</option>
+                          {question.options.map((option, idx) => (
+                            <option key={idx} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : question.type === "Range" ? (
+                        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: "12px", color: "#6B7280", display: "block", marginBottom: "4px" }}>
+                              Minimum Salary
+                            </label>
+                            <div style={{ position: "relative" }}>
+                              <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", color: "#6B7280" }}>
+                                ₱
+                              </span>
+                              <input
+                                type="number"
+                                placeholder="0"
+                                value={preScreeningAnswers[question.id]?.min || ""}
+                                onChange={(e) =>
+                                  setPreScreeningAnswers({
+                                    ...preScreeningAnswers,
+                                    [question.id]: {
+                                      ...preScreeningAnswers[question.id],
+                                      min: e.target.value,
+                                    },
+                                  })
+                                }
+                                style={{
+                                  width: "100%",
+                                  padding: "12px 12px 12px 28px",
+                                  borderRadius: "8px",
+                                  border: "1px solid #E5E7EB",
+                                  fontSize: "14px",
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: "12px", color: "#6B7280", display: "block", marginBottom: "4px" }}>
+                              Maximum Salary
+                            </label>
+                            <div style={{ position: "relative" }}>
+                              <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", color: "#6B7280" }}>
+                                ₱
+                              </span>
+                              <input
+                                type="number"
+                                placeholder="0"
+                                value={preScreeningAnswers[question.id]?.max || ""}
+                                onChange={(e) =>
+                                  setPreScreeningAnswers({
+                                    ...preScreeningAnswers,
+                                    [question.id]: {
+                                      ...preScreeningAnswers[question.id],
+                                      max: e.target.value,
+                                    },
+                                  })
+                                }
+                                style={{
+                                  width: "100%",
+                                  padding: "12px 12px 12px 28px",
+                                  borderRadius: "8px",
+                                  border: "1px solid #E5E7EB",
+                                  fontSize: "14px",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Type your answer here"
+                          value={preScreeningAnswers[question.id] || ""}
+                          onChange={(e) =>
+                            setPreScreeningAnswers({
+                              ...preScreeningAnswers,
+                              [question.id]: e.target.value,
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "12px",
+                            borderRadius: "8px",
+                            border: "1px solid #E5E7EB",
+                            fontSize: "14px",
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button onClick={handlePreScreeningSubmit}>Continue</button>
+            </div>
+          )}
+
+          {currentStep == step[2] && !screeningResult && (
             <div className={styles.cvScreeningContainer}>
               <img alt="" src={assetConstants.loading} />
               <span className={styles.title}>Sit tight!</span>
