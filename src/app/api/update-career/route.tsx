@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectMongoDB from "@/lib/mongoDB/mongoDB";
 import { ObjectId } from "mongodb";
+import { sanitizeCareerData } from "@/lib/sanitize";
 
 export async function POST(request: Request) {
   try {
@@ -17,12 +18,16 @@ export async function POST(request: Request) {
 
     const { db } = await connectMongoDB();
 
-    let dataUpdates = { ...requestData };
+    // Sanitize all input data to prevent XSS attacks
+    const sanitizedData = sanitizeCareerData(requestData);
+
+    let dataUpdates = { ...sanitizedData };
 
     delete dataUpdates._id;
 
     const career = {
       ...dataUpdates,
+      updatedAt: new Date(),
     };
 
     await db

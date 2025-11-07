@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import connectMongoDB from "@/lib/mongoDB/mongoDB";
 import { guid } from "@/lib/Utils";
 import { ObjectId } from "mongodb";
+import { sanitizeCareerData } from "@/lib/sanitize";
 
 export async function POST(request: Request) {
   try {
+    const rawData = await request.json();
+    
+    // Sanitize all input data to prevent XSS attacks
+    const sanitizedData = sanitizeCareerData(rawData);
+    
     const {
       jobTitle,
       description,
@@ -29,7 +35,7 @@ export async function POST(request: Request) {
       aiInterviewScreening,
       aiInterviewSecretPrompt,
       unpublishedLatestStep,
-    } = await request.json();
+    } = sanitizedData;
     // Validate required fields
     if (!jobTitle || !description || !questions || !location || !workSetup) {
       return NextResponse.json(
