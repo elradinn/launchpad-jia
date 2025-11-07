@@ -293,8 +293,8 @@ export default function ManageCareerPage() {
                 });
                 if (tab === "edit") {
                     setActiveTab("job-description");
-                    setEditSection(response.data?.unpublishedLatestStep || "Career Details & Team Access");
-                    setShowEditModal(true);
+                    // For unpublished careers, the form will show directly in the tab
+                    // For published careers, user will click edit icon on accordion sections
                 }
             } catch (error) {
                 if (error.response.status === 404) {
@@ -794,9 +794,20 @@ export default function ManageCareerPage() {
                     />}
                     {activeTab === "all-applicants" && <CareerApplicantsTable slug={career?.id} />}
                     {activeTab === "job-description" && (
-                        <div style={{ display: "flex", flexDirection: "row", gap: 24, marginTop: 24 }}>
-                            {/* Left Column - Accordions */}
-                            <div style={{ flex: "0 0 65%", display: "flex", flexDirection: "column", gap: 16 }}>
+                        <>
+                            {/* Show CareerFormV2 directly for unpublished careers */}
+                            {formData.status === "inactive" && formData.unpublishedLatestStep ? (
+                                <div style={{ marginTop: 24 }}>
+                                    <CareerFormV2
+                                        career={formData}
+                                        mode="edit"
+                                        initialSection={formData.unpublishedLatestStep}
+                                    />
+                                </div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "row", gap: 24, marginTop: 24 }}>
+                                    {/* Left Column - Accordions */}
+                                    <div style={{ flex: "0 0 65%", display: "flex", flexDirection: "column", gap: 16 }}>
                                 {/* Career Details & Team Access Accordion */}
                                 <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
                                     <button
@@ -1231,6 +1242,8 @@ export default function ManageCareerPage() {
                                 </div>
                             </div>
                         </div>
+                            )}
+                        </>
                     )}
                     {candidateMenuOpen && <CandidateMenu
                         handleCandidateMenuOpen={handleCandidateMenuOpen}

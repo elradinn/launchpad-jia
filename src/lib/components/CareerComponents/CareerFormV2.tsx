@@ -207,12 +207,10 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
 
     // Update currentStep when initialSection changes (for edit mode)
     useEffect(() => {
-        console.log("initialSection changed:", initialSection, "currentStep:", currentStep);
-        if (initialSection && initialSection !== currentStep) {
-            console.log("Updating currentStep to:", initialSection);
+        if (initialSection) {
             setCurrentStep(initialSection);
         }
-    }, [initialSection, currentStep]);
+    }, [initialSection]);
 
     function processState(index, isAdvance = false) {
         const currentStepIndex = step.indexOf(currentStep);
@@ -555,7 +553,13 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         <div className={styles.careerFormContainer}>
             <div style={{ marginBottom: "35px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                 <h1 style={{ fontSize: "24px", fontWeight: 550, color: "#111827" }}>
-                    {mode === "edit" ? (isDraft && jobTitle ? `[Draft] ${jobTitle}` : "Edit career") : (isDraft && jobTitle ? `[Draft] ${jobTitle}` : "Add new career")}
+                    {mode === "edit" 
+                        ? (isDraft && jobTitle 
+                            ? `[Draft] ${jobTitle}` 
+                            : initialSection 
+                                ? `Edit Career - ${initialSection}` 
+                                : "Edit career")
+                        : (isDraft && jobTitle ? `[Draft] ${jobTitle}` : "Add new career")}
                 </h1>
                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "10px" }}>
                     {mode === "edit" && onClose && (
@@ -575,14 +579,16 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                         </button>
                     )}
                     <button
-                        disabled={mode === "edit" && (!isFormValid() || isSavingCareer)}
-                        style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (mode === "edit" && (!isFormValid() || isSavingCareer)) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
-                        onClick={mode === "edit" ? () => confirmSaveCareer(career?.status || "active") : saveDraftAndContinue}>
+                        disabled={isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())}
+                        style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                        onClick={mode === "edit" ? (isDraft ? saveDraftAndContinue : () => confirmSaveCareer(career?.status || "active")) : saveDraftAndContinue}>
                         <i className="la la-check-circle" style={{ color: "#fff", fontSize: 20, marginRight: 8 }}></i>
-                        {mode === "edit" ? "Save Changes" : "Save and Continue"}
+                        {mode === "edit" ? (isDraft ? "Save and Continue" : "Save Changes") : "Save and Continue"}
                     </button>
                 </div>
             </div>
+            {/* Only show stepper for create mode or draft edits */}
+            {(mode === "create" || isDraft) && (
             <div className={styles.stepContainer}>
                 <div className={styles.step}>
                     {step.map((_, index) => (
@@ -624,6 +630,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                     ))}
                 </div>
             </div>
+            )}
 
             {currentStep === step[0] && (
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 16, alignItems: "flex-start", marginTop: 16 }}>
