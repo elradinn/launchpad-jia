@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       cvSecretPrompt,
       aiInterviewScreening,
       aiInterviewSecretPrompt,
+      unpublishedLatestStep,
     } = await request.json();
     // Validate required fields
     if (!jobTitle || !description || !questions || !location || !workSetup) {
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
       cvSecretPrompt: cvSecretPrompt || "",
       aiInterviewScreening: aiInterviewScreening || "Good Fit and above",
       aiInterviewSecretPrompt: aiInterviewSecretPrompt || "",
+      unpublishedLatestStep: unpublishedLatestStep || null,
     };
 
     await db.collection("careers").insertOne(career);

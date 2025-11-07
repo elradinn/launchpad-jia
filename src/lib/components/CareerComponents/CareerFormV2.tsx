@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { assetConstants } from "@/lib/utils/constantsV2";
 import styles from "@/lib/styles/screens/careerForm.module.scss"
 import CustomDropdown from "@/lib/components/CareerComponents/CustomDropdown";
@@ -9,6 +9,7 @@ import InterviewQuestionGeneratorV2 from "@/lib/components/CareerComponents/Inte
 import philippineCitiesAndProvinces from "../../../../public/philippines-locations.json";
 import { candidateActionToast, errorToast } from "@/lib/Utils";
 import { useAppContext } from "@/lib/context/AppContext";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import axios from "axios";
 import CareerActionModal from "./CareerActionModal";
 import FullScreenLoadingAnimation from "./FullScreenLoadingAnimation";
@@ -192,8 +193,26 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
     const [showSaveModal, setShowSaveModal] = useState("");
     const [isSavingCareer, setIsSavingCareer] = useState(false);
     const savingCareerRef = useRef(false);
+    const [draftId, setDraftId] = useState<string | null>(career?._id || null);
+    const [isDraft, setIsDraft] = useState(career?.status === "inactive" && career?.unpublishedLatestStep || false);
+
+    // localStorage for auto-save (only for create mode)
+    const draftKey = mode === "create" ? `career-draft-${orgID}` : null;
+    const [localDraft, setLocalDraft] = useLocalStorage<any>(
+        draftKey || "career-draft-temp",
+        null
+    );
 
     const stepStatus = ["Completed", "Pending", "In Progress"];
+
+    // Update currentStep when initialSection changes (for edit mode)
+    useEffect(() => {
+        console.log("initialSection changed:", initialSection, "currentStep:", currentStep);
+        if (initialSection && initialSection !== currentStep) {
+            console.log("Updating currentStep to:", initialSection);
+            setCurrentStep(initialSection);
+        }
+    }, [initialSection, currentStep]);
 
     function processState(index, isAdvance = false) {
         const currentStepIndex = step.indexOf(currentStep);
@@ -413,14 +432,135 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         }
     }
 
+    // Save draft and continue to next step  
+    const saveDraftAndContinue = useCallback(async () => {
+        if (savingCareerRef.current || !orgID) return;
+
+        setIsSavingCareer(true);
+        savingCareerRef.current = true;
+
+        try {
+            let userInfoSlice = {
+                image: user.image,
+                name: user.name,
+                email: user.email,
+            };
+
+            // Calculate next step to save
+            const currentStepIndex = step.indexOf(currentStep);
+            const nextStep = currentStepIndex < step.length - 1 ? step[currentStepIndex + 1] : currentStep;
+
+            const draftData = {
+                _id: draftId,
+                jobTitle,
+                description: aboutRole,
+                workSetup,
+                workSetupRemarks: "",
+                questions,
+                lastEditedBy: userInfoSlice,
+                createdBy: userInfoSlice,
+                screeningSetting,
+                orgID,
+                requireVideo,
+                salaryNegotiable,
+                minimumSalary: isNaN(Number(minimumSalary)) ? null : Number(minimumSalary),
+                maximumSalary: isNaN(Number(maximumSalary)) ? null : Number(maximumSalary),
+                country,
+                province,
+                location: city,
+                status: "inactive",
+                employmentType,
+                preScreeningQuestions,
+                cvSecretPrompt,
+                aiInterviewScreening,
+                aiInterviewSecretPrompt,
+                unpublishedLatestStep: nextStep,
+            };
+
+            let response;
+            if (draftId) {
+                response = await axios.post("/api/update-career", {
+                    ...draftData,
+                    updatedAt: Date.now(),
+                });
+            } else {
+                response = await axios.post("/api/add-career", draftData);
+            }
+
+            if (response.status === 200) {
+                if (!draftId && response.data.career?._id) {
+                    setDraftId(response.data.career._id);
+                }
+                setIsDraft(true);
+
+                // Move to next step
+                if (currentStepIndex < step.length - 1) {
+                    setCurrentStep(nextStep);
+                }
+            }
+        } catch (error) {
+            console.error("Error saving draft:", error);
+            errorToast("Failed to save progress", 1300);
+        } finally {
+            savingCareerRef.current = false;
+            setIsSavingCareer(false);
+        }
+    }, [draftId, jobTitle, aboutRole, workSetup, questions, screeningSetting, orgID, requireVideo, salaryNegotiable, minimumSalary, maximumSalary, country, province, city, employmentType, preScreeningQuestions, cvSecretPrompt, aiInterviewScreening, aiInterviewSecretPrompt, currentStep, user, step]);
+
+    // Auto-save to localStorage
+    useEffect(() => {
+        if (mode === "create" && draftKey) {
+            const timer = setTimeout(() => {
+                setLocalDraft({
+                    jobTitle, aboutRole, employmentType, workSetup, country, province, city,
+                    salaryNegotiable, minimumSalary, maximumSalary, screeningSetting,
+                    cvSecretPrompt, aiInterviewScreening, requireVideo, aiInterviewSecretPrompt,
+                    questions, preScreeningQuestions, currentStep
+                });
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [mode, draftKey, jobTitle, aboutRole, employmentType, workSetup, country, province, city, salaryNegotiable, minimumSalary, maximumSalary, screeningSetting, cvSecretPrompt, aiInterviewScreening, requireVideo, aiInterviewSecretPrompt, questions, preScreeningQuestions, currentStep, setLocalDraft]);
+
+    // Restore from localStorage
+    useEffect(() => {
+        if (mode === "create" && !career && localDraft && draftKey) {
+            if (window.confirm("We found a saved draft from your previous session. Would you like to restore it?")) {
+                setJobTitle(localDraft.jobTitle || "");
+                setAboutRole(localDraft.aboutRole || "");
+                setEmploymentType(localDraft.employmentType || "Full-time");
+                setWorkSetup(localDraft.workSetup || "Hybrid");
+                setCountry(localDraft.country || "Philippines");
+                setProvince(localDraft.province || "Metro Manila");
+                setCity(localDraft.city || "Pasig City");
+                setSalaryNegotiable(localDraft.salaryNegotiable ?? true);
+                setMinimumSalary(localDraft.minimumSalary || "");
+                setMaximumSalary(localDraft.maximumSalary || "");
+                setScreeningSetting(localDraft.screeningSetting || "Good Fit and above");
+                setCvSecretPrompt(localDraft.cvSecretPrompt || "");
+                setAiInterviewScreening(localDraft.aiInterviewScreening || "Good Fit and above");
+                setRequireVideo(localDraft.requireVideo ?? true);
+                setAiInterviewSecretPrompt(localDraft.aiInterviewSecretPrompt || "");
+                if (localDraft.questions) setQuestions(localDraft.questions);
+                if (localDraft.preScreeningQuestions) setPreScreeningQuestions(localDraft.preScreeningQuestions);
+                if (localDraft.currentStep) setCurrentStep(localDraft.currentStep);
+                setIsDraft(true);
+            } else {
+                setLocalDraft(null);
+            }
+        }
+    }, []);
+
     return (
         <div className={styles.careerFormContainer}>
             <div style={{ marginBottom: "35px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                <h1 style={{ fontSize: "24px", fontWeight: 550, color: "#111827" }}>{mode === "edit" ? "Edit career" : "Add new career"}</h1>
+                <h1 style={{ fontSize: "24px", fontWeight: 550, color: "#111827" }}>
+                    {mode === "edit" ? (isDraft && jobTitle ? `[Draft] ${jobTitle}` : "Edit career") : (isDraft && jobTitle ? `[Draft] ${jobTitle}` : "Add new career")}
+                </h1>
                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "10px" }}>
                     {mode === "edit" && onClose && (
                         <button
-                            style={{ width: "fit-content", color: "#414651", background: "#fff", border: "1px solid #D5D7DA", padding: "8px 16px", borderRadius: "60px", cursor: "pointer", whiteSpace: "nowrap" }} 
+                            style={{ width: "fit-content", color: "#414651", background: "#fff", border: "1px solid #D5D7DA", padding: "8px 16px", borderRadius: "60px", cursor: "pointer", whiteSpace: "nowrap" }}
                             onClick={onClose}>
                             Cancel
                         </button>
@@ -436,8 +576,8 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                     )}
                     <button
                         disabled={mode === "edit" && (!isFormValid() || isSavingCareer)}
-                        style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (mode === "edit" && (!isFormValid() || isSavingCareer)) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }} 
-                        onClick={mode === "edit" ? () => confirmSaveCareer(career?.status || "active") : handleContinue}>
+                        style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (mode === "edit" && (!isFormValid() || isSavingCareer)) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                        onClick={mode === "edit" ? () => confirmSaveCareer(career?.status || "active") : saveDraftAndContinue}>
                         <i className="la la-check-circle" style={{ color: "#fff", fontSize: 20, marginRight: 8 }}></i>
                         {mode === "edit" ? "Save Changes" : "Save and Continue"}
                     </button>

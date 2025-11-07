@@ -289,9 +289,12 @@ export default function ManageCareerPage() {
                     lastEditedBy: response.data?.lastEditedBy || {},
                     employmentType: response.data?.employmentType || "Full-time",
                     orgID: response.data?.orgID || "",
+                    unpublishedLatestStep: response.data?.unpublishedLatestStep || "Career Details & Team Access",
                 });
                 if (tab === "edit") {
                     setActiveTab("job-description");
+                    setEditSection(response.data?.unpublishedLatestStep || "Career Details & Team Access");
+                    setShowEditModal(true);
                 }
             } catch (error) {
                 if (error.response.status === 404) {
