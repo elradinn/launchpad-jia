@@ -40,20 +40,27 @@ const aiInterviewScreeningList = [
     { name: "No Automatic Promotion" },
 ];
 
-export default function CareerFormV2() {
-    const [currentStep, setCurrentStep] = useState(step[0]);
-    const [jobTitle, setJobTitle] = useState("");
-    const [employmentType, setEmploymentType] = useState("Full-time");
-    const [workSetup, setWorkSetup] = useState("Hybrid");
-    const [country, setCountry] = useState("Philippines");
-    const [province, setProvince] = useState("Metro Manila");
-    const [city, setCity] = useState("Pasig City");
-    const [salaryNegotiable, setSalaryNegotiable] = useState(true);
-    const [minimumSalary, setMinimumSalary] = useState("");
-    const [maximumSalary, setMaximumSalary] = useState("");
+interface CareerFormV2Props {
+    career?: any;
+    mode?: "create" | "edit";
+    initialSection?: string;
+    onClose?: () => void;
+}
+
+export default function CareerFormV2({ career, mode = "create", initialSection, onClose }: CareerFormV2Props = {}) {
+    const [currentStep, setCurrentStep] = useState(initialSection || step[0]);
+    const [jobTitle, setJobTitle] = useState(career?.jobTitle || "");
+    const [employmentType, setEmploymentType] = useState(career?.employmentType || "Full-time");
+    const [workSetup, setWorkSetup] = useState(career?.workSetup || "Hybrid");
+    const [country, setCountry] = useState(career?.country || "Philippines");
+    const [province, setProvince] = useState(career?.province || "Metro Manila");
+    const [city, setCity] = useState(career?.location || "Pasig City");
+    const [salaryNegotiable, setSalaryNegotiable] = useState(career?.salaryNegotiable ?? true);
+    const [minimumSalary, setMinimumSalary] = useState(career?.minimumSalary?.toString() || "");
+    const [maximumSalary, setMaximumSalary] = useState(career?.maximumSalary?.toString() || "");
     const [provinceList, setProvinceList] = useState(philippineCitiesAndProvinces.provinces);
     const [cityList, setCityList] = useState(philippineCitiesAndProvinces.cities.filter((city) => city.province === "NCR"));
-    const [aboutRole, setAboutRole] = useState("");
+    const [aboutRole, setAboutRole] = useState(career?.description || "");
     const [teamMembers, setTeamMembers] = useState([
         {
             id: 1,
@@ -70,12 +77,12 @@ export default function CareerFormV2() {
             isCurrentUser: false,
         },
     ]);
-    const [screeningSetting, setScreeningSetting] = useState("Good Fit and above");
-    const [cvSecretPrompt, setCvSecretPrompt] = useState("");
-    const [aiInterviewScreening, setAiInterviewScreening] = useState("Good Fit and above");
-    const [requireVideo, setRequireVideo] = useState(true);
-    const [aiInterviewSecretPrompt, setAiInterviewSecretPrompt] = useState("");
-    const [questions, setQuestions] = useState([
+    const [screeningSetting, setScreeningSetting] = useState(career?.screeningSetting || "Good Fit and above");
+    const [cvSecretPrompt, setCvSecretPrompt] = useState(career?.cvSecretPrompt || "");
+    const [aiInterviewScreening, setAiInterviewScreening] = useState(career?.aiInterviewScreening || "Good Fit and above");
+    const [requireVideo, setRequireVideo] = useState(career?.requireVideo ?? true);
+    const [aiInterviewSecretPrompt, setAiInterviewSecretPrompt] = useState(career?.aiInterviewSecretPrompt || "");
+    const [questions, setQuestions] = useState(career?.questions || [
         {
             id: 1,
             category: "CV Validation / Experience",
@@ -107,7 +114,7 @@ export default function CareerFormV2() {
             questions: [],
         },
     ]);
-    const [preScreeningQuestions, setPreScreeningQuestions] = useState([
+    const [preScreeningQuestions, setPreScreeningQuestions] = useState(career?.preScreeningQuestions || [
         {
             id: 1,
             question: "How long is your notice period?",
@@ -332,7 +339,7 @@ export default function CareerFormV2() {
                 name: user.name,
                 email: user.email,
             };
-            const career = {
+            const careerData = {
                 jobTitle,
                 description: aboutRole,
                 workSetup,
@@ -358,20 +365,47 @@ export default function CareerFormV2() {
             }
 
             try {
-                const response = await axios.post("/api/add-career", career);
-                if (response.status === 200) {
-                    candidateActionToast(
-                        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Career added {status === "active" ? "and published" : ""}</span>
-                        </div>,
-                        1300,
-                        <i className="la la-check-circle" style={{ color: "#039855", fontSize: 32 }}></i>)
-                    setTimeout(() => {
-                        window.location.href = `/recruiter-dashboard/careers`;
-                    }, 1300);
+                let response;
+                if (mode === "edit" && career?._id) {
+                    // Update existing career
+                    response = await axios.post("/api/update-career", {
+                        ...careerData,
+                        _id: career._id,
+                        updatedAt: Date.now(),
+                    });
+                    if (response.status === 200) {
+                        candidateActionToast(
+                            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Career updated successfully</span>
+                            </div>,
+                            1300,
+                            <i className="la la-check-circle" style={{ color: "#039855", fontSize: 32 }}></i>)
+                        setTimeout(() => {
+                            if (onClose) {
+                                onClose();
+                                window.location.reload();
+                            } else {
+                                window.location.href = `/recruiter-dashboard/careers/manage/${career._id}`;
+                            }
+                        }, 1300);
+                    }
+                } else {
+                    // Create new career
+                    response = await axios.post("/api/add-career", careerData);
+                    if (response.status === 200) {
+                        candidateActionToast(
+                            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Career added {status === "active" ? "and published" : ""}</span>
+                            </div>,
+                            1300,
+                            <i className="la la-check-circle" style={{ color: "#039855", fontSize: 32 }}></i>)
+                        setTimeout(() => {
+                            window.location.href = `/recruiter-dashboard/careers`;
+                        }, 1300);
+                    }
                 }
             } catch (error) {
-                errorToast("Failed to add career", 1300);
+                errorToast(mode === "edit" ? "Failed to update career" : "Failed to add career", 1300);
             } finally {
                 savingCareerRef.current = false;
                 setIsSavingCareer(false);
@@ -382,19 +416,30 @@ export default function CareerFormV2() {
     return (
         <div className={styles.careerFormContainer}>
             <div style={{ marginBottom: "35px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                <h1 style={{ fontSize: "24px", fontWeight: 550, color: "#111827" }}>Add new career</h1>
+                <h1 style={{ fontSize: "24px", fontWeight: 550, color: "#111827" }}>{mode === "edit" ? "Edit career" : "Add new career"}</h1>
                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "10px" }}>
+                    {mode === "edit" && onClose && (
+                        <button
+                            style={{ width: "fit-content", color: "#414651", background: "#fff", border: "1px solid #D5D7DA", padding: "8px 16px", borderRadius: "60px", cursor: "pointer", whiteSpace: "nowrap" }} 
+                            onClick={onClose}>
+                            Cancel
+                        </button>
+                    )}
+                    {mode === "create" && (
+                        <button
+                            disabled={!isFormValid() || isSavingCareer}
+                            style={{ width: "fit-content", color: "#414651", background: "#fff", border: "1px solid #D5D7DA", padding: "8px 16px", borderRadius: "60px", cursor: !isFormValid() || isSavingCareer ? "not-allowed" : "pointer", whiteSpace: "nowrap" }} onClick={() => {
+                                confirmSaveCareer("inactive");
+                            }}>
+                            Save as Unpublished
+                        </button>
+                    )}
                     <button
-                        disabled={!isFormValid() || isSavingCareer}
-                        style={{ width: "fit-content", color: "#414651", background: "#fff", border: "1px solid #D5D7DA", padding: "8px 16px", borderRadius: "60px", cursor: !isFormValid() || isSavingCareer ? "not-allowed" : "pointer", whiteSpace: "nowrap" }} onClick={() => {
-                            confirmSaveCareer("inactive");
-                        }}>
-                        Save as Unpublished
-                    </button>
-                    <button
-                        style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={handleContinue}>
+                        disabled={mode === "edit" && (!isFormValid() || isSavingCareer)}
+                        style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (mode === "edit" && (!isFormValid() || isSavingCareer)) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }} 
+                        onClick={mode === "edit" ? () => confirmSaveCareer(career?.status || "active") : handleContinue}>
                         <i className="la la-check-circle" style={{ color: "#fff", fontSize: 20, marginRight: 8 }}></i>
-                        Save and Continue
+                        {mode === "edit" ? "Save Changes" : "Save and Continue"}
                     </button>
                 </div>
             </div>

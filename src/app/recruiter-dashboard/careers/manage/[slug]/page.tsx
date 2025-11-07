@@ -17,6 +17,7 @@ import CareerStatus from "@/lib/components/CareerComponents/CareerStatus";
 import CandidateActionModal from "@/lib/components/CandidateComponents/CandidateActionModal";
 import { candidateActionToast, errorToast, getStage } from "@/lib/Utils";
 import { Tooltip } from "react-tooltip";
+import CareerFormV2 from "@/lib/components/CareerComponents/CareerFormV2";
 
 export default function ManageCareerPage() {
     const { slug } = useParams();
@@ -173,84 +174,87 @@ export default function ManageCareerPage() {
     const [showCandidateHistory, setShowCandidateHistory] = useState(false);
     const [selectedCandidateHistory, setSelectedCandidateHistory] = useState<any>({});
     const [showCandidateActionModal, setShowCandidateActionModal] = useState("");
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editSection, setEditSection] = useState("");
     const draggedCandidateRef = useRef<boolean>(false);
-    
+    const [openAccordion, setOpenAccordion] = useState("Career Details & Team Access");
+
     const tabs = [
-      {
-        label: "Application Timeline",
-        value: "application-timeline",
-        icon: "stream",
-      },
-      {
-        label: "All Applicants",
-        value: "all-applicants",
-        icon: "users",
-      },
-      {
-        label: "Career Description",
-        value: "job-description",
-        icon: "suitcase",
-      },
+        {
+            label: "Application Timeline",
+            value: "application-timeline",
+            icon: "stream",
+        },
+        {
+            label: "All Applicants",
+            value: "all-applicants",
+            icon: "users",
+        },
+        {
+            label: "Career Description",
+            value: "job-description",
+            icon: "suitcase",
+        },
     ];
-    
-      useEffect(() => {
+
+    useEffect(() => {
         const fetchInterviews = async () => {
-          if (!career?.id) return;
+            if (!career?.id) return;
 
-          const response = await axios.get(`/api/get-career-interviews?careerID=${career.id}`);
-          if (response.data.length > 0) {
-            let newTimelineStages = { ...timelineStages };
-            for (const interview of response.data) {
+            const response = await axios.get(`/api/get-career-interviews?careerID=${career.id}`);
+            if (response.data.length > 0) {
+                let newTimelineStages = { ...timelineStages };
+                for (const interview of response.data) {
 
-                const isDropped = interview.applicationStatus === "Dropped" || interview.applicationStatus === "Cancelled";
-                if (interview.currentStep === "AI Interview" || !interview.currentStep || (interview.currentStep === "CV Screening" && interview.status === "For AI Interview")) {
-                    if (interview.status === "For Interview" || interview.status === "For AI Interview") {
-                        isDropped ? newTimelineStages["Pending AI Interview"].droppedCandidates.push(interview) : newTimelineStages["Pending AI Interview"].candidates.push(interview);
+                    const isDropped = interview.applicationStatus === "Dropped" || interview.applicationStatus === "Cancelled";
+                    if (interview.currentStep === "AI Interview" || !interview.currentStep || (interview.currentStep === "CV Screening" && interview.status === "For AI Interview")) {
+                        if (interview.status === "For Interview" || interview.status === "For AI Interview") {
+                            isDropped ? newTimelineStages["Pending AI Interview"].droppedCandidates.push(interview) : newTimelineStages["Pending AI Interview"].candidates.push(interview);
+                            continue;
+                        }
+
+                        isDropped ? newTimelineStages["AI Interview Review"].droppedCandidates.push(interview) : newTimelineStages["AI Interview Review"].candidates.push(interview);
                         continue;
                     }
 
-                    isDropped ? newTimelineStages["AI Interview Review"].droppedCandidates.push(interview) : newTimelineStages["AI Interview Review"].candidates.push(interview);
-                    continue;
-                }
-                
-                if (interview.currentStep === "CV Screening") {
-                    isDropped ? newTimelineStages["CV Review"].droppedCandidates.push(interview) : newTimelineStages["CV Review"].candidates.push(interview);
-                    continue;
-                }
-
-                if (interview.currentStep === "Human Interview") {
-                    if (interview.status === "For Human Interview") {
-                        isDropped ? newTimelineStages["For Human Interview"].droppedCandidates.push(interview) : newTimelineStages["For Human Interview"].candidates.push(interview);
+                    if (interview.currentStep === "CV Screening") {
+                        isDropped ? newTimelineStages["CV Review"].droppedCandidates.push(interview) : newTimelineStages["CV Review"].candidates.push(interview);
                         continue;
                     }
-                    if (interview.status === "For Human Interview Review") {
-                        isDropped ? newTimelineStages["Human Interview Review"].droppedCandidates.push(interview) : newTimelineStages["Human Interview Review"].candidates.push(interview);
+
+                    if (interview.currentStep === "Human Interview") {
+                        if (interview.status === "For Human Interview") {
+                            isDropped ? newTimelineStages["For Human Interview"].droppedCandidates.push(interview) : newTimelineStages["For Human Interview"].candidates.push(interview);
+                            continue;
+                        }
+                        if (interview.status === "For Human Interview Review") {
+                            isDropped ? newTimelineStages["Human Interview Review"].droppedCandidates.push(interview) : newTimelineStages["Human Interview Review"].candidates.push(interview);
+                            continue;
+                        }
+                    }
+
+                    if (interview.currentStep === "Job Interview") {
+                        isDropped ? newTimelineStages["Pending Job Interview"].droppedCandidates.push(interview) : newTimelineStages["Pending Job Interview"].candidates.push(interview);
+                        continue;
+                    }
+
+                    if (interview.currentStep === "Job Offered") {
+                        isDropped ? newTimelineStages["Job Offered"].droppedCandidates.push(interview) : newTimelineStages["Job Offered"].candidates.push(interview);
+                        continue;
+                    }
+
+                    if (interview.currentStep === "Contract Signed") {
+                        isDropped ? newTimelineStages["Contract Signed"].droppedCandidates.push(interview) : newTimelineStages["Contract Signed"].candidates.push(interview);
                         continue;
                     }
                 }
 
-                if (interview.currentStep === "Job Interview") {
-                   isDropped ? newTimelineStages["Pending Job Interview"].droppedCandidates.push(interview) : newTimelineStages["Pending Job Interview"].candidates.push(interview);
-                   continue;
-                }
-
-                if (interview.currentStep === "Job Offered") {
-                    isDropped ? newTimelineStages["Job Offered"].droppedCandidates.push(interview) : newTimelineStages["Job Offered"].candidates.push(interview);
-                    continue;
-                }
-
-                if (interview.currentStep === "Contract Signed") {
-                    isDropped ? newTimelineStages["Contract Signed"].droppedCandidates.push(interview) : newTimelineStages["Contract Signed"].candidates.push(interview);
-                    continue;
-                }
+                setAndSortCandidates(newTimelineStages);
             }
-    
-            setAndSortCandidates(newTimelineStages);
-          }
         };
-        
+
         fetchInterviews();
-      }, [career?.id]);
+    }, [career?.id]);
 
     useEffect(() => {
         const fetchCareer = async () => {
@@ -259,8 +263,8 @@ export default function ManageCareerPage() {
                 const response = await axios.post("/api/career-data", {
                     id: slug,
                     orgID,
-                  });
-                  
+                });
+
                 setCareer(response.data);
                 const deepCopy = JSON.parse(JSON.stringify(response.data?.questions ?? []));
                 setFormData({
@@ -322,7 +326,7 @@ export default function ManageCareerPage() {
 
     const handleDroppedCandidatesOpen = (stage: string) => {
         setDroppedCandidatesOpen(prev => !prev);
-        setSelectedDroppedCandidates({...timelineStages[stage], stage});
+        setSelectedDroppedCandidates({ ...timelineStages[stage], stage });
     }
 
     const handleCandidateHistoryOpen = (candidate: any) => {
@@ -331,7 +335,7 @@ export default function ManageCareerPage() {
     }
 
     const handleCandidateAnalysisComplete = (updatedCandidate: any) => {
-        const updatedStages = {...timelineStages };
+        const updatedStages = { ...timelineStages };
         updatedStages[updatedCandidate.stage].candidates = updatedStages[updatedCandidate.stage].candidates.map((c: any) => c._id === updatedCandidate._id ? updatedCandidate : c);
         setAndSortCandidates(updatedStages);
     }
@@ -358,7 +362,7 @@ export default function ManageCareerPage() {
         setShowCandidateActionModal("drop");
         setSelectedCandidate(candidate);
     }
-    
+
     const dragEndorsedCandidate = (candidateId: string, fromStageKey: string, toStageKey: string) => {
         const candidateIndex = (timelineStages?.[fromStageKey]?.candidates as any[]).findIndex((c) => c._id.toString() === candidateId);
         const currentStage = timelineStages?.[toStageKey]?.currentStage;
@@ -367,26 +371,26 @@ export default function ManageCareerPage() {
             status: currentStage.status,
             updatedAt: Date.now(),
             applicationMetadata: {
-              updatedAt: Date.now(),
-              updatedBy: {
-                  image: user?.image,
-                  name: user?.name,
-                  email: user?.email,
-              },
-              action: "Endorsed",
+                updatedAt: Date.now(),
+                updatedBy: {
+                    image: user?.image,
+                    name: user?.name,
+                    email: user?.email,
+                },
+                action: "Endorsed",
             }
         }
         if (candidateIndex !== -1) {
-            const updatedStages = {...timelineStages }
+            const updatedStages = { ...timelineStages }
             const candidate = updatedStages?.[fromStageKey]?.candidates?.[candidateIndex];
             // Remove and add to new stage
-            
-            (updatedStages?.[toStageKey]?.candidates as any[]).push({...candidate, ...update});
+
+            (updatedStages?.[toStageKey]?.candidates as any[]).push({ ...candidate, ...update });
             (updatedStages?.[fromStageKey]?.candidates as any[]).splice(candidateIndex, 1);
             setAndSortCandidates(updatedStages);
             draggedCandidateRef.current = true;
             setShowCandidateActionModal("endorse");
-            setSelectedCandidate({...candidate, stage: fromStageKey, toStage: toStageKey});
+            setSelectedCandidate({ ...candidate, stage: fromStageKey, toStage: toStageKey });
         }
     }
 
@@ -412,13 +416,13 @@ export default function ManageCareerPage() {
                     status: nextStage.status,
                     updatedAt: Date.now(),
                     applicationMetadata: {
-                      updatedAt: Date.now(),
-                      updatedBy: {
-                          image: user?.image,
-                          name: user?.name,
-                          email: user?.email,
-                      },
-                      action: "Endorsed",
+                        updatedAt: Date.now(),
+                        updatedBy: {
+                            image: user?.image,
+                            name: user?.name,
+                            email: user?.email,
+                        },
+                        action: "Endorsed",
                     }
                 }
                 await axios.post("/api/update-interview", {
@@ -437,20 +441,20 @@ export default function ManageCareerPage() {
                     }
                 });
                 if (!draggedCandidateRef.current) {
-                    const updatedStages = {...timelineStages };
+                    const updatedStages = { ...timelineStages };
                     updatedStages[stage].candidates = updatedStages[stage].candidates.filter((c: any) => c._id !== selectedCandidate._id);
-                    updatedStages[nextStage.name].candidates.push({...selectedCandidate, ...update});
+                    updatedStages[nextStage.name].candidates.push({ ...selectedCandidate, ...update });
                     setAndSortCandidates(updatedStages);
                 }
                 candidateActionToast(
                     <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Candidate endorsed</span>
-                        <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have endorsed the candidate to the next stage.</span>
-                      </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Candidate endorsed</span>
+                            <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have endorsed the candidate to the next stage.</span>
+                        </div>
                     </div>,
-                    1300, 
-                  <i className="la la-user-check" style={{ color: "#039855", fontSize: 32 }}></i>)
+                    1300,
+                    <i className="la la-user-check" style={{ color: "#039855", fontSize: 32 }}></i>)
             } catch (error) {
                 console.error("error", error);
                 errorToast("Failed to endorse candidate", 1300);
@@ -467,20 +471,20 @@ export default function ManageCareerPage() {
                     applicationStatus: "Dropped",
                     updatedAt: Date.now(),
                     applicationMetadata: {
-                    updatedAt: Date.now(),
-                    updatedBy: {
-                        image: user?.image,
-                        name: user?.name,
-                        email: user?.email,
-                    },
-                    action: "Dropped",
+                        updatedAt: Date.now(),
+                        updatedBy: {
+                            image: user?.image,
+                            name: user?.name,
+                            email: user?.email,
+                        },
+                        action: "Dropped",
                     }
                 }
                 await axios.post("/api/update-interview", {
                     uid: selectedCandidate._id,
                     data: update,
-                     // For logging history
-                     interviewTransaction: {
+                    // For logging history
+                    interviewTransaction: {
                         interviewUID: selectedCandidate._id,
                         fromStage: stage,
                         action: "Dropped",
@@ -491,22 +495,22 @@ export default function ManageCareerPage() {
                         },
                     }
                 });
-                 // Update state
-                 if (timelineStages?.[stage]) {
-                    const updatedStages = {...timelineStages };
-                    updatedStages[stage].droppedCandidates.push({...selectedCandidate, ...update});
+                // Update state
+                if (timelineStages?.[stage]) {
+                    const updatedStages = { ...timelineStages };
+                    updatedStages[stage].droppedCandidates.push({ ...selectedCandidate, ...update });
                     updatedStages[stage].candidates = updatedStages[stage].candidates.filter((c: any) => c._id !== selectedCandidate._id);
                     setAndSortCandidates(updatedStages);
                 }
                 candidateActionToast(
                     <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Candidate dropped</span>
-                        <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have dropped the candidate from the application process. </span>
-                      </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Candidate dropped</span>
+                            <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have dropped the candidate from the application process. </span>
+                        </div>
                     </div>,
-                    1300, 
-                  <i className="la la-user-minus" style={{ color: "#D92D20", fontSize: 32 }}></i>)
+                    1300,
+                    <i className="la la-user-minus" style={{ color: "#D92D20", fontSize: 32 }}></i>)
             } catch (error) {
                 console.error("error", error);
                 errorToast("Failed to drop candidate", 1300);
@@ -523,16 +527,16 @@ export default function ManageCareerPage() {
                     applicationStatus: "Ongoing",
                     updatedAt: Date.now(),
                     applicationMetadata: {
-                      updatedAt: Date.now(),
-                      updatedBy: {
-                          image: user?.image,
-                          name: user?.name,
-                          email: user?.email,
-                      },
-                      action: "Reconsidered",
+                        updatedAt: Date.now(),
+                        updatedBy: {
+                            image: user?.image,
+                            name: user?.name,
+                            email: user?.email,
+                        },
+                        action: "Reconsidered",
                     }
                 };
-                 await axios.post("/api/update-interview", {
+                await axios.post("/api/update-interview", {
                     uid: selectedCandidate._id,
                     data: update,
                     interviewTransaction: {
@@ -547,20 +551,20 @@ export default function ManageCareerPage() {
                     }
                 });
                 if (timelineStages?.[stage]) {
-                    const updatedStages = {...timelineStages };
+                    const updatedStages = { ...timelineStages };
                     updatedStages[stage].droppedCandidates = updatedStages[stage].droppedCandidates.filter((c: any) => c._id !== selectedCandidate._id);
-                    updatedStages[stage].candidates.push({...selectedCandidate, ...update});
+                    updatedStages[stage].candidates.push({ ...selectedCandidate, ...update });
                     setAndSortCandidates(updatedStages);
                 }
                 candidateActionToast(
                     <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Candidate reconsidered</span>
-                        <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have reconsidered the candidate back to the ongoing stage.</span>
-                      </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Candidate reconsidered</span>
+                            <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have reconsidered the candidate back to the ongoing stage.</span>
+                        </div>
                     </div>,
-                    1300, 
-                  <i className="la la-user-check" style={{ color: "#039855", fontSize: 32 }}></i>)
+                    1300,
+                    <i className="la la-user-check" style={{ color: "#039855", fontSize: 32 }}></i>)
             } catch (error) {
                 console.error("error", error);
                 errorToast("Failed to reconsider candidate", 1300);
@@ -572,48 +576,48 @@ export default function ManageCareerPage() {
             Swal.showLoading();
             // reset interview data
             try {
-            await axios.post("/api/reset-interview-data", {
-                id: selectedCandidate._id,
-            });
-            
-            await axios.post("/api/update-interview", {
-                uid: selectedCandidate._id,
-                data: {
-                    retakeRequest: {
-                    status: "Approved",
-                    updatedAt: Date.now(),
-                    approvedBy: {
-                        image: user.image,
-                        name: user.name,
-                        email: user.email,
+                await axios.post("/api/reset-interview-data", {
+                    id: selectedCandidate._id,
+                });
+
+                await axios.post("/api/update-interview", {
+                    uid: selectedCandidate._id,
+                    data: {
+                        retakeRequest: {
+                            status: "Approved",
+                            updatedAt: Date.now(),
+                            approvedBy: {
+                                image: user.image,
+                                name: user.name,
+                                email: user.email,
+                            },
+                        },
                     },
+                    interviewTransaction: {
+                        interviewUID: selectedCandidate._id,
+                        fromStage: getStage(selectedCandidate),
+                        toStage: "Pending AI Interview",
+                        action: "Endorsed",
+                        updatedBy: {
+                            image: user?.image,
+                            name: user?.name,
+                            email: user?.email,
+                        },
                     },
-                },
-                interviewTransaction: {
-                    interviewUID: selectedCandidate._id,
-                    fromStage: getStage(selectedCandidate),
-                    toStage: "Pending AI Interview",
-                    action: "Endorsed",
-                    updatedBy: {
-                        image: user?.image,
-                        name: user?.name,
-                        email: user?.email,
-                    },
-                },
-            });
-            Swal.close();
-            candidateActionToast(
-                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Approved request</span>
-                    <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have approved <strong>{selectedCandidate?.name}'s</strong> request to retake interview.</span>
-                  </div>
-                </div>,
-                1300, 
-              <i className="la la-check-circle" style={{ color: "#039855", fontSize: 32 }}></i>)
-            setTimeout(() => {
-                window.location.href = `/recruiter-dashboard/careers/manage/${slug}`;
-            }, 1300);
+                });
+                Swal.close();
+                candidateActionToast(
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Approved request</span>
+                            <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have approved <strong>{selectedCandidate?.name}'s</strong> request to retake interview.</span>
+                        </div>
+                    </div>,
+                    1300,
+                    <i className="la la-check-circle" style={{ color: "#039855", fontSize: 32 }}></i>)
+                setTimeout(() => {
+                    window.location.href = `/recruiter-dashboard/careers/manage/${slug}`;
+                }, 1300);
             } catch (error) {
                 console.error("error", error);
                 Swal.close();
@@ -621,37 +625,37 @@ export default function ManageCareerPage() {
             }
         }
 
-        if (action === "reject") {      
+        if (action === "reject") {
             Swal.showLoading();
             try {
-            await axios.post("/api/update-interview", {
-                uid: selectedCandidate._id,
-                data: {
-                  retakeRequest: {
-                    status: "Rejected",
-                    updatedAt: Date.now(),
-                    approvedBy: {
-                      image: user.image,
-                      name: user.name,
-                      email: user.email,
+                await axios.post("/api/update-interview", {
+                    uid: selectedCandidate._id,
+                    data: {
+                        retakeRequest: {
+                            status: "Rejected",
+                            updatedAt: Date.now(),
+                            approvedBy: {
+                                image: user.image,
+                                name: user.name,
+                                email: user.email,
+                            },
+                        },
                     },
-                  },
-                },
-              });
-              
-            Swal.close();
-            candidateActionToast(
-                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Rejected request</span>
-                    <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have rejected <strong>{selectedCandidate?.name}'s</strong> request to retake interview.</span>
-                  </div>
-                </div>,
-                1300,
-              <i className="la la-times-circle" style={{ color: "#D92D20", fontSize: 32 }}></i>)
-            setTimeout(() => {
-                window.location.href = `/recruiter-dashboard/careers/manage/${slug}`;
-            }, 1300);
+                });
+
+                Swal.close();
+                candidateActionToast(
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 8 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "#181D27" }}>Rejected request</span>
+                            <span style={{ fontSize: 14, color: "#717680", fontWeight: 500, whiteSpace: "nowrap" }}>You have rejected <strong>{selectedCandidate?.name}'s</strong> request to retake interview.</span>
+                        </div>
+                    </div>,
+                    1300,
+                    <i className="la la-times-circle" style={{ color: "#D92D20", fontSize: 32 }}></i>)
+                setTimeout(() => {
+                    window.location.href = `/recruiter-dashboard/careers/manage/${slug}`;
+                }, 1300);
             } catch (error) {
                 console.error("error", error);
                 Swal.close();
@@ -662,7 +666,7 @@ export default function ManageCareerPage() {
         if (!action && draggedCandidateRef.current) {
             // Revert the changes since cancelled
             const { stage, toStage } = selectedCandidate;
-            const revertedStages = {...timelineStages };
+            const revertedStages = { ...timelineStages };
             const newCandidateIndex = (revertedStages?.[toStage]?.candidates as any[]).findIndex((c) => c._id.toString() === selectedCandidate._id);
             (revertedStages?.[stage]?.candidates as any[]).push(selectedCandidate);
             (revertedStages?.[toStage]?.candidates as any[]).splice(newCandidateIndex, 1);
@@ -675,21 +679,21 @@ export default function ManageCareerPage() {
             {/* Header */}
             <HeaderBar activeLink="Careers" currentPage={formData.jobTitle} icon="la la-suitcase" />
             <div className="container-fluid mt--7" style={{ paddingTop: "6rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                {isEditing ? 
-                    <input 
-                    type="text" 
-                    value={formData.jobTitle} 
-                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })} 
-                    style={{ color: "#030217", fontWeight: 550, fontSize: 30, width: "70%" }} 
-                    /> 
-                : <div style={{ maxWidth: "70%" }}>
-                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <h1 style={{ color: "#030217", fontWeight: 550, fontSize: 30 }}>{formData.jobTitle}</h1>
-                    <CareerStatus status={formData.status} />
-                </div>
-                </div>}
-                {/* <div style={{ display: "flex", gap: 16, alignItems: "center", textAlign: "center" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    {isEditing ?
+                        <input
+                            type="text"
+                            value={formData.jobTitle}
+                            onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                            style={{ color: "#030217", fontWeight: 550, fontSize: 30, width: "70%" }}
+                        />
+                        : <div style={{ maxWidth: "70%" }}>
+                            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 10 }}>
+                                <h1 style={{ color: "#030217", fontWeight: 550, fontSize: 30 }}>{formData.jobTitle}</h1>
+                                <CareerStatus status={formData.status} />
+                            </div>
+                        </div>}
+                    {/* <div style={{ display: "flex", gap: 16, alignItems: "center", textAlign: "center" }}>
                 <div style={{ color: "#030217" }}>
                     <div style={{ fontSize: 20, fontWeight: 600 }}>{hired}</div>
                     <div style={{ fontSize: 14 }}>Hired</div>
@@ -706,103 +710,587 @@ export default function ManageCareerPage() {
                 </div> 
                 </div> */}
 
-                {/* Export candidates button */}
-                {interviewsInProgress > 0 && <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                    <button 
-                    style={{
-                        background: "white",
-                        border: "1px solid #E9EAEB",
-                        borderRadius: 60,
-                        padding: "8px 16px",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        display: "flex",
-                        alignItems: "center",
-                        cursor: "pointer",
-                    }}
-                    onClick={() => {
-                        // Download spreadsheed file of all candidates
-                        const candidates = Object.keys(timelineStages).flatMap((key) => {
-                            const stage = timelineStages[key];
-                            if (stage.candidates.length > 0) {
-                                return stage.candidates.map((candidate) => {
-                                    return {
-                                        ...candidate,
-                                        stage: key,
+                    {/* Export candidates button */}
+                    {interviewsInProgress > 0 && <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                        <button
+                            style={{
+                                background: "white",
+                                border: "1px solid #E9EAEB",
+                                borderRadius: 60,
+                                padding: "8px 16px",
+                                fontSize: 14,
+                                fontWeight: 700,
+                                display: "flex",
+                                alignItems: "center",
+                                cursor: "pointer",
+                            }}
+                            onClick={() => {
+                                // Download spreadsheed file of all candidates
+                                const candidates = Object.keys(timelineStages).flatMap((key) => {
+                                    const stage = timelineStages[key];
+                                    if (stage.candidates.length > 0) {
+                                        return stage.candidates.map((candidate) => {
+                                            return {
+                                                ...candidate,
+                                                stage: key,
+                                            }
+                                        });
                                     }
+                                    return [];
                                 });
-                            }
-                            return [];
-                        });
-                        const csvContent = "data:text/csv;charset=utf-8,NAME,EMAIL,JOB TITLE,DATE APPLIED,APPLICATION STAGE,CV SCREENING RATING,AI INTERVIEW RATING" + "\n" + candidates.map((candidate) => {
-                            return [
-                                candidate.name?.replace(/,/g, ""),
-                                candidate.email?.replace(/,/g, ""),
-                                career.jobTitle?.replace(/,/g, ""),
-                                new Date(candidate.createdAt).toLocaleDateString(),
-                                candidate.stage,
-                                candidate.cvStatus || "N/A",
-                                candidate.jobFit || "N/A",
-                            ]
-                        }).join("\n");
-                        const encodedUri = encodeURI(csvContent);
-                        const link = document.createElement("a");
-                        link.setAttribute("href", encodedUri);
-                        link.setAttribute("download", `${career.jobTitle}-Candidates-${new Date().toLocaleDateString()}.csv`);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }}>
-                        <i className="la la-file-alt" style={{ fontSize: 20, marginRight: 8 }}></i>
-                        Export Candidates
-                    </button>
-                </div>}
-            </div>
-            <div style={{ padding: "16px 0 48px", background: "#FDFDFD", minHeight: "100vh" }}>
-            {/* Tabs */}
-            <div className="career-tab-container">
-                <div className="career-tab-content">
-                    {tabs.map((tab) => (
-                    <div 
-                    key={tab.value} 
-                    className={`career-tab-item ${activeTab === tab.value ? "active" : ""}`}
-                        onClick={() => setActiveTab(tab.value)}>
-                        <i className={`la la-${tab.icon}`} style={{ fontSize: 20, marginRight: 8 }}></i>
-                        {tab.label}
+                                const csvContent = "data:text/csv;charset=utf-8,NAME,EMAIL,JOB TITLE,DATE APPLIED,APPLICATION STAGE,CV SCREENING RATING,AI INTERVIEW RATING" + "\n" + candidates.map((candidate) => {
+                                    return [
+                                        candidate.name?.replace(/,/g, ""),
+                                        candidate.email?.replace(/,/g, ""),
+                                        career.jobTitle?.replace(/,/g, ""),
+                                        new Date(candidate.createdAt).toLocaleDateString(),
+                                        candidate.stage,
+                                        candidate.cvStatus || "N/A",
+                                        candidate.jobFit || "N/A",
+                                    ]
+                                }).join("\n");
+                                const encodedUri = encodeURI(csvContent);
+                                const link = document.createElement("a");
+                                link.setAttribute("href", encodedUri);
+                                link.setAttribute("download", `${career.jobTitle}-Candidates-${new Date().toLocaleDateString()}.csv`);
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                            }}>
+                            <i className="la la-file-alt" style={{ fontSize: 20, marginRight: 8 }}></i>
+                            Export Candidates
+                        </button>
+                    </div>}
+                </div>
+                <div style={{ padding: "16px 0 48px", background: "#FDFDFD", minHeight: "100vh" }}>
+                    {/* Tabs */}
+                    <div className="career-tab-container">
+                        <div className="career-tab-content">
+                            {tabs.map((tab) => (
+                                <div
+                                    key={tab.value}
+                                    className={`career-tab-item ${activeTab === tab.value ? "active" : ""}`}
+                                    onClick={() => setActiveTab(tab.value)}>
+                                    <i className={`la la-${tab.icon}`} style={{ fontSize: 20, marginRight: 8 }}></i>
+                                    {tab.label}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    ))}
+                    {/* Career Tab Information */}
+                    {activeTab === "application-timeline" && <CareerStageColumn
+                        timelineStages={timelineStages}
+                        handleCandidateMenuOpen={handleCandidateMenuOpen}
+                        handleCandidateCVOpen={handleCandidateCVOpen}
+                        handleDroppedCandidatesOpen={handleDroppedCandidatesOpen}
+                        handleEndorseCandidate={handleEndorseCandidate}
+                        handleDropCandidate={handleDropCandidate}
+                        dragEndorsedCandidate={dragEndorsedCandidate}
+                        handleCandidateHistoryOpen={handleCandidateHistoryOpen}
+                        handleRetakeInterview={handleRetakeInterview}
+                    />}
+                    {activeTab === "all-applicants" && <CareerApplicantsTable slug={career?.id} />}
+                    {activeTab === "job-description" && (
+                        <div style={{ display: "flex", flexDirection: "row", gap: 24, marginTop: 24 }}>
+                            {/* Left Column - Accordions */}
+                            <div style={{ flex: "0 0 65%", display: "flex", flexDirection: "column", gap: 16 }}>
+                                {/* Career Details & Team Access Accordion */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
+                                    <button
+                                        onClick={() => setOpenAccordion(openAccordion === "Career Details & Team Access" ? "" : "Career Details & Team Access")}
+                                        style={{
+                                            width: "100%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            padding: "16px 20px",
+                                            background: "#F9FAFB",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            color: "#181D27"
+                                        }}
+                                    >
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <i className={`la la-angle-${openAccordion === "Career Details & Team Access" ? 'down' : 'right'}`} style={{ fontSize: 20, color: "#6B7280" }}></i>
+                                            <span>Career Details & Team Access</span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditSection("Career Details & Team Access");
+                                                setShowEditModal(true);
+                                            }}
+                                            style={{
+                                                background: "transparent",
+                                                border: "none",
+                                                cursor: "pointer",
+                                                padding: 4
+                                            }}
+                                        >
+                                            <i className="la la-pen" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                        </button>
+                                    </button>
+
+                                    {openAccordion === "Career Details & Team Access" && (
+                                        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+                                            {/* Job Title */}
+                                            <div>
+                                                <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Job Title</span>
+                                                <span style={{ fontSize: 14, color: "#181D27" }}>{formData.jobTitle || "—"}</span>
+                                            </div>
+
+                                            {/* Employment Type & Work Arrangement */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                                                <div>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Employment Type</span>
+                                                    <span style={{ fontSize: 14, color: "#181D27" }}>{formData.employmentType || "Full-time"}</span>
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Work Arrangement</span>
+                                                    <span style={{ fontSize: 14, color: "#181D27" }}>{formData.workSetup || "Hybrid"}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Location */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+                                                <div>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Country</span>
+                                                    <span style={{ fontSize: 14, color: "#181D27" }}>Philippines</span>
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>State / Province</span>
+                                                    <span style={{ fontSize: 14, color: "#181D27" }}>{formData.province || "Metro Manila"}</span>
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>City</span>
+                                                    <span style={{ fontSize: 14, color: "#181D27" }}>{formData.location || "Pasig City"}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Salary */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                                                <div>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Minimum Salary</span>
+                                                    <span style={{ fontSize: 14, color: "#181D27" }}>
+                                                        {formData.salaryNegotiable ? "Negotiable" : formData.minimumSalary ? `₱${formData.minimumSalary} PHP` : "—"}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Maximum Salary</span>
+                                                    <span style={{ fontSize: 14, color: "#181D27" }}>
+                                                        {formData.salaryNegotiable ? "Negotiable" : formData.maximumSalary ? `₱${formData.maximumSalary} PHP` : "—"}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Job Description */}
+                                            <div>
+                                                <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 8 }}>Job Description</span>
+                                                <div
+                                                    style={{
+                                                        fontSize: 14,
+                                                        color: "#181D27",
+                                                        lineHeight: 1.6,
+                                                        maxHeight: 300,
+                                                        overflow: "auto"
+                                                    }}
+                                                    dangerouslySetInnerHTML={{ __html: formData.description || "—" }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* CV Review & Pre-Screening Questions Accordion */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
+                                    <button
+                                        onClick={() => setOpenAccordion(openAccordion === "CV Review & Pre-screening" ? "" : "CV Review & Pre-screening")}
+                                        style={{
+                                            width: "100%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            padding: "16px 20px",
+                                            background: "#F9FAFB",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            color: "#181D27"
+                                        }}
+                                    >
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <i className={`la la-angle-${openAccordion === "CV Review & Pre-screening" ? 'down' : 'right'}`} style={{ fontSize: 20, color: "#6B7280" }}></i>
+                                            <span>CV Review & Pre-screening</span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditSection("CV Review & Pre-screening");
+                                                setShowEditModal(true);
+                                            }}
+                                            style={{
+                                                background: "transparent",
+                                                border: "none",
+                                                cursor: "pointer",
+                                                padding: 4
+                                            }}
+                                        >
+                                            <i className="la la-pen" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                        </button>
+                                    </button>
+
+                                    {openAccordion === "CV Review & Pre-screening" && (
+                                        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
+                                            {/* CV Screening */}
+                                            <div>
+                                                <span style={{ fontSize: 14, color: "#181D27", fontWeight: 600, display: "block", marginBottom: 8 }}>CV Screening</span>
+                                                <div style={{ fontSize: 14, color: "#6B7280" }}>
+                                                    Automatically endorse candidates who are{" "}
+                                                    <span style={{
+                                                        color: "#3B82F6",
+                                                        fontWeight: 600,
+                                                        background: "#EFF6FF",
+                                                        padding: "2px 8px",
+                                                        borderRadius: 4
+                                                    }}>
+                                                        {formData.screeningSetting || "Good Fit and above"}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Pre-Screening Questions */}
+                                            <div>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                    <span style={{ fontSize: 14, color: "#181D27", fontWeight: 600 }}>Pre-Screening Questions</span>
+                                                    <span style={{
+                                                        background: "#F3F4F6",
+                                                        color: "#6B7280",
+                                                        padding: "2px 8px",
+                                                        borderRadius: "12px",
+                                                        fontSize: 12,
+                                                        fontWeight: 600
+                                                    }}>
+                                                        3
+                                                    </span>
+                                                </div>
+                                                <ol style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "#181D27", lineHeight: 2 }}>
+                                                    <li style={{ marginBottom: 12 }}>
+                                                        <div style={{ fontWeight: 500, marginBottom: 4 }}>How long is your notice period?</div>
+                                                        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
+                                                            <li>Immediately</li>
+                                                            <li>&lt; 30 days</li>
+                                                            <li>&gt; 30 days</li>
+                                                        </ul>
+                                                    </li>
+                                                    <li style={{ marginBottom: 12 }}>
+                                                        <div style={{ fontWeight: 500, marginBottom: 4 }}>How often are you willing to report to the office?</div>
+                                                        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
+                                                            <li>At most 1-2x a week</li>
+                                                            <li>At most 3-4x a week</li>
+                                                            <li>Open to fully onsite work</li>
+                                                            <li>Only open to fully remote work</li>
+                                                        </ul>
+                                                    </li>
+                                                    <li style={{ marginBottom: 12 }}>
+                                                        <div style={{ fontWeight: 500, marginBottom: 4 }}>How much is your expected monthly salary?</div>
+                                                        <div style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
+                                                            Preferred: PHP 40,000 - PHP 60,000
+                                                        </div>
+                                                    </li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* AI Interview Setup Accordion */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
+                                    <button
+                                        onClick={() => setOpenAccordion(openAccordion === "AI Interview Setup" ? "" : "AI Interview Setup")}
+                                        style={{
+                                            width: "100%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            padding: "16px 20px",
+                                            background: "#F9FAFB",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            color: "#181D27"
+                                        }}
+                                    >
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <i className={`la la-angle-${openAccordion === "AI Interview Setup" ? 'down' : 'right'}`} style={{ fontSize: 20, color: "#6B7280" }}></i>
+                                            <span>AI Interview Setup</span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditSection("AI Interview Setup");
+                                                setShowEditModal(true);
+                                            }}
+                                            style={{
+                                                background: "transparent",
+                                                border: "none",
+                                                cursor: "pointer",
+                                                padding: 4
+                                            }}
+                                        >
+                                            <i className="la la-pen" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                        </button>
+                                    </button>
+
+                                    {openAccordion === "AI Interview Setup" && (
+                                        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
+                                            {/* Require Video on Interview */}
+                                            <div>
+                                                <span style={{ fontSize: 14, color: "#181D27", fontWeight: 600, display: "block", marginBottom: 8 }}>Require Video on Interview</span>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280" }}>{formData.requireVideo ? "Yes" : "No"}</span>
+                                                    {formData.requireVideo && (
+                                                        <i className="la la-check-circle" style={{ color: "#10B981", fontSize: 18 }}></i>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Interview Questions */}
+                                            {formData.questions && formData.questions.some((cat: any) => cat.questions && cat.questions.length > 0) && (
+                                                <div>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                        <span style={{ fontSize: 14, color: "#181D27", fontWeight: 600 }}>Interview Questions</span>
+                                                        <span style={{
+                                                            background: "#F3F4F6",
+                                                            color: "#6B7280",
+                                                            padding: "2px 8px",
+                                                            borderRadius: "12px",
+                                                            fontSize: 12,
+                                                            fontWeight: 600
+                                                        }}>
+                                                            {formData.questions.reduce((total: number, cat: any) => total + (cat.questions?.length || 0), 0)}
+                                                        </span>
+                                                    </div>
+
+                                                    {formData.questions.filter((cat: any) => cat.questions && cat.questions.length > 0).map((category: any) => (
+                                                        <div key={category.id} style={{ marginBottom: 16 }}>
+                                                            <span style={{ fontSize: 14, color: "#181D27", fontWeight: 600, display: "block", marginBottom: 8 }}>
+                                                                {category.category}
+                                                            </span>
+                                                            <ol style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "#6B7280", lineHeight: 1.8 }}>
+                                                                {category.questions.map((q: any, idx: number) => (
+                                                                    <li key={idx}>{typeof q === 'string' ? q : q.question}</li>
+                                                                ))}
+                                                            </ol>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right Column - Additional Details */}
+                            <div style={{ flex: "0 0 calc(35% - 24px)", display: "flex", flexDirection: "column", gap: 16 }}>
+                                {/* Additional Details */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 20 }}>
+                                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#181D27", marginBottom: 16 }}>Additional Details</h3>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                        <div>
+                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Created By</span>
+                                            <span style={{ fontSize: 14, color: "#181D27" }}>{formData.createdBy?.name || "—"}</span>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Created At</span>
+                                            <span style={{ fontSize: 14, color: "#181D27" }}>
+                                                {formData.createdAt ? new Date(formData.createdAt).toLocaleDateString() : "—"}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Last Edited By</span>
+                                            <span style={{ fontSize: 14, color: "#181D27" }}>{formData.lastEditedBy?.name || "—"}</span>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Last Updated</span>
+                                            <span style={{ fontSize: 14, color: "#181D27" }}>
+                                                {formData.updatedAt ? new Date(formData.updatedAt).toLocaleDateString() : "—"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Career Link */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 20 }}>
+                                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#181D27", marginBottom: 16 }}>Career Link</h3>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <input
+                                            type="text"
+                                            value={`https://www.hellojia.ai/job-portal/${formData._id}`}
+                                            readOnly
+                                            style={{
+                                                flex: 1,
+                                                padding: "8px 12px",
+                                                fontSize: 14,
+                                                border: "1px solid #E5E7EB",
+                                                borderRadius: 8,
+                                                background: "#F9FAFB",
+                                                color: "#6B7280"
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(`https://www.hellojia.ai/job-portal/${formData._id}`);
+                                            }}
+                                            style={{
+                                                padding: "8px 12px",
+                                                background: "#000",
+                                                color: "#fff",
+                                                border: "none",
+                                                borderRadius: 8,
+                                                cursor: "pointer",
+                                                fontSize: 14
+                                            }}
+                                        >
+                                            <i className="la la-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Direct Interview Link */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 20 }}>
+                                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#181D27", marginBottom: 16 }}>Direct Interview Link</h3>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <input
+                                            type="text"
+                                            value={formData.directInterviewLink || "Not set"}
+                                            readOnly
+                                            style={{
+                                                flex: 1,
+                                                padding: "8px 12px",
+                                                fontSize: 14,
+                                                border: "1px solid #E5E7EB",
+                                                borderRadius: 8,
+                                                background: "#F9FAFB",
+                                                color: "#6B7280"
+                                            }}
+                                        />
+                                        {formData.directInterviewLink && (
+                                            <button
+                                                onClick={() => {
+                                                    window.open(formData.directInterviewLink, "_blank");
+                                                }}
+                                                style={{
+                                                    padding: "8px 12px",
+                                                    background: "#000",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: 8,
+                                                    cursor: "pointer",
+                                                    fontSize: 14
+                                                }}
+                                            >
+                                                <i className="la la-external-link-alt"></i>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Advanced Settings */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 20 }}>
+                                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#181D27", marginBottom: 16 }}>Advanced Settings</h3>
+                                    <button
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 16px",
+                                            background: "#FEE2E2",
+                                            color: "#DC2626",
+                                            border: "1px solid #FCA5A5",
+                                            borderRadius: 8,
+                                            cursor: "pointer",
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: 8
+                                        }}
+                                    >
+                                        <i className="la la-trash"></i>
+                                        Delete this career
+                                    </button>
+                                    <p style={{ fontSize: 12, color: "#6B7280", marginTop: 8, textAlign: "center" }}>
+                                        Be careful, this action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {candidateMenuOpen && <CandidateMenu
+                        handleCandidateMenuOpen={handleCandidateMenuOpen}
+                        candidate={selectedCandidate}
+                        handleCandidateCVOpen={handleCandidateCVOpen}
+                        handleEndorseCandidate={handleEndorseCandidate}
+                        handleDropCandidate={handleDropCandidate}
+                        handleCandidateAnalysisComplete={handleCandidateAnalysisComplete}
+                        handleRetakeInterview={handleRetakeInterview}
+                    />}
+                    {candidateCVOpen && <CandidateCV candidate={selectedCandidateCV} setShowCandidateCV={setCandidateCVOpen} />}
+                    {droppedCandidatesOpen && <DroppedCandidates handleDroppedCandidatesOpen={setDroppedCandidatesOpen} timelineStage={selectedDroppedCandidates} handleCandidateMenuOpen={handleCandidateMenuOpen} handleCandidateCVOpen={handleCandidateCVOpen} handleReconsiderCandidate={handleReconsiderCandidate} />}
+                    {showCandidateHistory && <CandidateHistory candidate={selectedCandidateHistory} setShowCandidateHistory={setShowCandidateHistory} />}
+                    {showCandidateActionModal && <CandidateActionModal candidate={selectedCandidate} onAction={handleCandidateAction} action={showCandidateActionModal} />}
+                    {showEditModal && (
+                        <div
+                            className="modal show fade-in-bottom"
+                            style={{
+                                display: "block",
+                                background: "rgba(0,0,0,0.45)",
+                                position: "fixed",
+                                top: 0,
+                                left: 0,
+                                width: "100vw",
+                                height: "100vh",
+                                zIndex: 1050,
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    height: "100vh",
+                                    width: "100vw",
+                                }}
+                            >
+                                <div
+                                    className="modal-content"
+                                    style={{
+                                        overflowY: "scroll",
+                                        height: "100vh",
+                                        width: "90vw",
+                                        background: "#fff",
+                                        border: "1.5px solid #E9EAEB",
+                                        borderRadius: 14,
+                                        boxShadow: "0 8px 32px rgba(30,32,60,0.18)",
+                                        padding: "24px"
+                                    }}
+                                >
+                                    <CareerFormV2
+                                        career={formData}
+                                        mode="edit"
+                                        initialSection={editSection}
+                                        onClose={() => setShowEditModal(false)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <Tooltip className="career-fit-tooltip fade-in" id="career-fit-tooltip" />
                 </div>
             </div>
-            {/* Career Tab Information */}
-            {activeTab === "application-timeline" && <CareerStageColumn 
-            timelineStages={timelineStages} 
-            handleCandidateMenuOpen={handleCandidateMenuOpen} 
-            handleCandidateCVOpen={handleCandidateCVOpen} 
-            handleDroppedCandidatesOpen={handleDroppedCandidatesOpen} 
-            handleEndorseCandidate={handleEndorseCandidate} 
-            handleDropCandidate={handleDropCandidate} 
-            dragEndorsedCandidate={dragEndorsedCandidate} 
-            handleCandidateHistoryOpen={handleCandidateHistoryOpen} 
-            handleRetakeInterview={handleRetakeInterview}
-            />}
-            {activeTab === "all-applicants" && <CareerApplicantsTable slug={career?.id} />}
-            {activeTab === "job-description" && <JobDescription formData={formData} setFormData={setFormData} editModal={tab === "edit"} isEditing={isEditing} setIsEditing={setIsEditing} handleCancelEdit={handleCancelEdit} />}
-            {candidateMenuOpen && <CandidateMenu 
-            handleCandidateMenuOpen={handleCandidateMenuOpen} 
-            candidate={selectedCandidate} 
-            handleCandidateCVOpen={handleCandidateCVOpen} 
-            handleEndorseCandidate={handleEndorseCandidate} 
-            handleDropCandidate={handleDropCandidate} 
-            handleCandidateAnalysisComplete={handleCandidateAnalysisComplete} 
-            handleRetakeInterview={handleRetakeInterview} 
-            />}
-            {candidateCVOpen && <CandidateCV candidate={selectedCandidateCV} setShowCandidateCV={setCandidateCVOpen} />}
-            {droppedCandidatesOpen && <DroppedCandidates handleDroppedCandidatesOpen={setDroppedCandidatesOpen} timelineStage={selectedDroppedCandidates} handleCandidateMenuOpen={handleCandidateMenuOpen} handleCandidateCVOpen={handleCandidateCVOpen} handleReconsiderCandidate={handleReconsiderCandidate} />}
-            {showCandidateHistory && <CandidateHistory candidate={selectedCandidateHistory} setShowCandidateHistory={setShowCandidateHistory} />}
-            {showCandidateActionModal && <CandidateActionModal candidate={selectedCandidate} onAction={handleCandidateAction} action={showCandidateActionModal} />}
-            <Tooltip className="career-fit-tooltip fade-in" id="career-fit-tooltip"/>
-        </div>
-        </div>
-    </>
+        </>
     )
 }
