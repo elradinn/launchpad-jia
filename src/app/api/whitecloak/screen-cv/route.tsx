@@ -5,54 +5,72 @@ import connectMongoDB from "@/lib/mongoDB/mongoDB";
 import OpenAI from "openai";
 
 export async function POST(request: Request) {
-  const { interviewID, userEmail } = await request.json();
-  const { db } = await connectMongoDB();
-  const interviewData = await db.collection("interviews").findOne({
-    interviewID,
-    email: userEmail,
-  });
-
-  if (!interviewData) {
-    return NextResponse.json({
-      error: "CV Screening Failed",
-      message: "No application found for the selected job.",
+    const { interviewID, userEmail, preScreeningAnswers } = await request.json();
+    const { db } = await connectMongoDB();
+    const interviewData = await db.collection("interviews").findOne({
+        interviewID,
+        email: userEmail,
     });
-  }
 
-  const cvData = await db.collection("applicant-cv").findOne({
-    email: userEmail,
-  });
-
-  if (!cvData) {
-    return NextResponse.json({
-      error: "CV Screening Failed",
-      message: "You have not uploaded a CV for this application.",
-    });
-  }
-
-  const cvScreeningPromptData = await db.collection("global-settings").findOne(
-    {
-      name: "global-settings",
-    },
-    {
-      projection: {
-        cv_screening_prompt: 1,
-      },
+    if (!interviewData) {
+        return NextResponse.json({
+            error: "CV Screening Failed",
+            message: "No application found for the selected job.",
+        });
     }
-  );
-  const cvScreeningPromptText =
-    cvScreeningPromptData?.cv_screening_prompt?.prompt;
 
-  let parsedCV = "";
+    const cvData = await db.collection("applicant-cv").findOne({
+        email: userEmail,
+    });
 
-  cvData.digitalCV.forEach((section) => {
-    parsedCV += `${section.name}\n${section.content}\n`;
-  });
+    if (!cvData) {
+        return NextResponse.json({
+            error: "CV Screening Failed",
+            message: "You have not uploaded a CV for this application.",
+        });
+    }
 
-  const screeningPrompt = `
+    const cvScreeningPromptData = await db.collection("global-settings").findOne(
+        {
+            name: "global-settings",
+        },
+        {
+            projection: {
+                cv_screening_prompt: 1,
+            },
+        }
+    );
+    const cvScreeningPromptText =
+        cvScreeningPromptData?.cv_screening_prompt?.prompt;
+
+    let parsedCV = "";
+
+    cvData.digitalCV.forEach((section) => {
+        parsedCV += `${section.name}\n${section.content}\n`;
+    });
+
+    // Format pre-screening answers
+    let preScreeningText = "";
+    if (preScreeningAnswers && interviewData.preScreeningQuestions) {
+        preScreeningText = "\n    Pre-screening Questions & Answers:\n";
+        interviewData.preScreeningQuestions.forEach((question) => {
+            const answer = preScreeningAnswers[question.id];
+            let formattedAnswer = "";
+
+            if (question.type === "Range" && answer) {
+                formattedAnswer = `₱${answer.min || 0} - ₱${answer.max || 0}`;
+            } else {
+                formattedAnswer = answer || "Not answered";
+            }
+
+            preScreeningText += `      Q: ${question.question}\n      A: ${formattedAnswer}\n\n`;
+        });
+    }
+
+    const screeningPrompt = `
     You are a helpful AI assistant.
-    You are given a candidate's CV and a job description.
-    You need to screen the candidate's CV and determine if they are a good fit for the job.
+    You are given a candidate's CV, pre-screening answers, and a job description.
+    You need to screen BOTH the candidate's CV and pre-screening answers to determine if they are a good fit for the job.
 
     Job Details:
       Job Title:
@@ -65,6 +83,9 @@ export async function POST(request: Request) {
 
     Applicant CV:
       ${parsedCV}
+
+    Applicant Pre-screening Answers:
+      ${preScreeningText}
 
     Processing Steps:
       ${cvScreeningPromptText}
@@ -88,181 +109,182 @@ export async function POST(request: Request) {
       - DO NOT include \`\`\`json or \`\`\` around the response.
   `;
 
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  const completion = await openai.responses.create({
-    model: "o4-mini",
-    reasoning: { effort: "high" },
-    input: [
-      {
-        role: "user",
-        content: screeningPrompt,
-      },
-    ],
-  });
-
-  let result: any = completion.output_text;
-
-  try {
-    result = result.replace("```json", "").replace("```", "");
-    result = JSON.parse(result);
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json({
-      message: "[Error] Invalid JSON",
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
     });
-  }
+    const completion = await openai.responses.create({
+        model: "o4-mini",
+        reasoning: { effort: "high" },
+        input: [
+            {
+                role: "user",
+                content: screeningPrompt,
+            },
+        ],
+    });
 
-  let screeningData: any = {
-    cvStatus: result.result,
-    stateClass: "state-accepted",
-    cvSettingResult: null,
-    cvScreeningReason: result.reason,
-    currentStep: "CV Screening",
-    confidence: result.confidence,
-    jobFitScore: result.jobFitScore,
-    updatedAt: Date.now(),
-  };
-  const newDate = new Date();
+    let result: any = completion.output_text;
 
-  screeningData.statusDate = {
-    "CV Screening": newDate,
-  };
+    try {
+        result = result.replace("```json", "").replace("```", "");
+        result = JSON.parse(result);
+    } catch (error) {
+        console.log(error);
+        return NextResponse.json({
+            message: "[Error] Invalid JSON",
+        });
+    }
 
-  let interviewTransaction: any = null;
-
-  const forReviewResult = ["Maybe Fit", "Insufficient Data"];
-  const forDropResult = ["No Fit", "Bad Fit"];
-  const forPromotionResult = ["Good Fit", "Strong Fit"];
-
-  if (forReviewResult.includes(result.result)) {
-    screeningData.currentStep = "CV Screening";
-    screeningData.status = "For CV Screening";
-  }
-
-  if (forDropResult.includes(result.result)) {
-    screeningData.applicationStatus = "Dropped";
-    interviewTransaction = {
-      interviewUID: interviewData._id.toString(),
-      fromStage: "CV Screening",
-      action: "Dropped",
-      updatedBy: {
-        name: "Jia",
-      },
+    let screeningData: any = {
+        cvStatus: result.result,
+        stateClass: "state-accepted",
+        cvSettingResult: null,
+        cvScreeningReason: result.reason,
+        currentStep: "CV Screening",
+        confidence: result.confidence,
+        jobFitScore: result.jobFitScore,
+        updatedAt: Date.now(),
+        preScreeningAnswers: preScreeningAnswers || null,
     };
-    screeningData.applicationMetadata = {
-      updatedAt: Date.now(),
-      updatedBy: {
-        name: "Jia",
-      },
-      action: "Dropped",
-    };
-  }
+    const newDate = new Date();
 
-  if (forPromotionResult.includes(result.result)) {
-    screeningData.currentStep = "CV Screening";
-    screeningData.status = "For AI Interview";
     screeningData.statusDate = {
-      ...screeningData.statusDate,
-      "AI Interview": newDate,
+        "CV Screening": newDate,
     };
-    interviewTransaction = {
-      interviewUID: interviewData._id.toString(),
-      fromStage: "CV Screening",
-      toStage: "Pending AI Interview",
-      action: "Auto-Promoted",
-      updatedBy: {
-        name: "Jia",
-      },
-    };
-    screeningData.applicationMetadata = {
-      updatedAt: Date.now(),
-      updatedBy: {
-        name: "Jia",
-      },
-      action: "Endorsed",
-    };
-  }
 
-  if (interviewData.screeningSetting) {
-    if (interviewData.screeningSetting === "Only Strong Fit") {
-      if (result.result == forPromotionResult[0]) {
+    let interviewTransaction: any = null;
+
+    const forReviewResult = ["Maybe Fit", "Insufficient Data"];
+    const forDropResult = ["No Fit", "Bad Fit"];
+    const forPromotionResult = ["Good Fit", "Strong Fit"];
+
+    if (forReviewResult.includes(result.result)) {
+        screeningData.currentStep = "CV Screening";
         screeningData.status = "For CV Screening";
-      }
     }
-  }
 
-  if (result.result === "No Fit" || result.result === "Bad Fit") {
-    screeningData.stateClass = "state-rejected";
-    screeningData.cvSettingResult = "Failed";
-  }
+    if (forDropResult.includes(result.result)) {
+        screeningData.applicationStatus = "Dropped";
+        interviewTransaction = {
+            interviewUID: interviewData._id.toString(),
+            fromStage: "CV Screening",
+            action: "Dropped",
+            updatedBy: {
+                name: "Jia",
+            },
+        };
+        screeningData.applicationMetadata = {
+            updatedAt: Date.now(),
+            updatedBy: {
+                name: "Jia",
+            },
+            action: "Dropped",
+        };
+    }
 
-  // manage state class
-  if (result.result === "Good Fit") {
-    screeningData.stateClass = "state-good";
-    screeningData.cvSettingResult = "Passed";
-  }
+    if (forPromotionResult.includes(result.result)) {
+        screeningData.currentStep = "CV Screening";
+        screeningData.status = "For AI Interview";
+        screeningData.statusDate = {
+            ...screeningData.statusDate,
+            "AI Interview": newDate,
+        };
+        interviewTransaction = {
+            interviewUID: interviewData._id.toString(),
+            fromStage: "CV Screening",
+            toStage: "Pending AI Interview",
+            action: "Auto-Promoted",
+            updatedBy: {
+                name: "Jia",
+            },
+        };
+        screeningData.applicationMetadata = {
+            updatedAt: Date.now(),
+            updatedBy: {
+                name: "Jia",
+            },
+            action: "Endorsed",
+        };
+    }
 
-  if (result.result === "Strong Fit") {
-    screeningData.stateClass = "state-accepted";
-    screeningData.cvSettingResult = "Passed";
-  }
+    if (interviewData.screeningSetting) {
+        if (interviewData.screeningSetting === "Only Strong Fit") {
+            if (result.result == forPromotionResult[0]) {
+                screeningData.status = "For CV Screening";
+            }
+        }
+    }
 
-  if (
-    result.result === "Ineligible CV" ||
-    result.result === "Insufficient Data"
-  ) {
-    screeningData.stateClass = "state-rejected";
-    screeningData.cvSettingResult = "Failed";
-  }
-
-  // check screening setting
-  if (interviewData.screeningSetting) {
-    if (interviewData.screeningSetting === "Only Strong Fit") {
-      if (result.result === "Strong Fit") {
-        screeningData.stateClass = "state-accepted";
-        screeningData.cvSettingResult = "Passed";
-        // screeningData.currentStep = "AI Interview";
-        // screeningData.status = "For Interview";
-      } else {
+    if (result.result === "No Fit" || result.result === "Bad Fit") {
         screeningData.stateClass = "state-rejected";
         screeningData.cvSettingResult = "Failed";
-        // screeningData.status = "Failed CV Screening";
-      }
     }
 
-    if (interviewData.screeningSetting === "Good Fit and above") {
-      if (result.result === "Good Fit" || result.result === "Strong Fit") {
+    // manage state class
+    if (result.result === "Good Fit") {
+        screeningData.stateClass = "state-good";
+        screeningData.cvSettingResult = "Passed";
+    }
+
+    if (result.result === "Strong Fit") {
         screeningData.stateClass = "state-accepted";
         screeningData.cvSettingResult = "Passed";
-        // screeningData.currentStep = "AI Interview";
-        // screeningData.status = "For Interview";
-      } else {
+    }
+
+    if (
+        result.result === "Ineligible CV" ||
+        result.result === "Insufficient Data"
+    ) {
         screeningData.stateClass = "state-rejected";
         screeningData.cvSettingResult = "Failed";
-        // screeningData.status = "Failed CV Screening";
-      }
     }
-  }
 
-  await db
-    .collection("interviews")
-    .updateOne({ interviewID: interviewID }, { $set: screeningData });
+    // check screening setting
+    if (interviewData.screeningSetting) {
+        if (interviewData.screeningSetting === "Only Strong Fit") {
+            if (result.result === "Strong Fit") {
+                screeningData.stateClass = "state-accepted";
+                screeningData.cvSettingResult = "Passed";
+                // screeningData.currentStep = "AI Interview";
+                // screeningData.status = "For Interview";
+            } else {
+                screeningData.stateClass = "state-rejected";
+                screeningData.cvSettingResult = "Failed";
+                // screeningData.status = "Failed CV Screening";
+            }
+        }
 
-  if (interviewTransaction) {
-    await db.collection("interview-history").insertOne({
-      ...interviewTransaction,
-      createdAt: Date.now(),
-    });
-  }
-  // Update career lastActivityAt to current date
-  await db
-    .collection("careers")
-    .updateOne(
-      { id: interviewData.id },
-      { $set: { lastActivityAt: new Date() } }
-    );
+        if (interviewData.screeningSetting === "Good Fit and above") {
+            if (result.result === "Good Fit" || result.result === "Strong Fit") {
+                screeningData.stateClass = "state-accepted";
+                screeningData.cvSettingResult = "Passed";
+                // screeningData.currentStep = "AI Interview";
+                // screeningData.status = "For Interview";
+            } else {
+                screeningData.stateClass = "state-rejected";
+                screeningData.cvSettingResult = "Failed";
+                // screeningData.status = "Failed CV Screening";
+            }
+        }
+    }
 
-  return NextResponse.json(screeningData);
+    await db
+        .collection("interviews")
+        .updateOne({ interviewID: interviewID }, { $set: screeningData });
+
+    if (interviewTransaction) {
+        await db.collection("interview-history").insertOne({
+            ...interviewTransaction,
+            createdAt: Date.now(),
+        });
+    }
+    // Update career lastActivityAt to current date
+    await db
+        .collection("careers")
+        .updateOne(
+            { id: interviewData.id },
+            { $set: { lastActivityAt: new Date() } }
+        );
+
+    return NextResponse.json(screeningData);
 }

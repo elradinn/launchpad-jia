@@ -860,7 +860,7 @@ export default function () {
                     This role may not be the best match.
                   </span>
                   <span className={styles.description}>
-                    Based on your CV, it looks like this position might not be
+                    Based on your application details, it looks like this position might not be
                     the right fit at the moment.
                   </span>
                   <br />
@@ -906,7 +906,7 @@ export default function () {
                 <>
                   <img alt="" src={assetConstants.userCheck} />
                   <span className={styles.title}>
-                    Your CV is now being reviewed by the hiring team.
+                    Your application is now being reviewed by the hiring team.
                   </span>
                   <span className={styles.description}>
                     We’ll be in touch soon with updates about your application.
