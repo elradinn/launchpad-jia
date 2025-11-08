@@ -382,9 +382,9 @@ export default function CandidateMenu({ handleCandidateMenuOpen, candidate, hand
                               e.stopPropagation();
                             }}
                           >
-                          {(event) =>
-                            'Download CV'
-                          }
+                          {(event) => (
+                            <>Download CV</>
+                          )}
                           </PDFDownloadLink>
                         </div>
                         </>

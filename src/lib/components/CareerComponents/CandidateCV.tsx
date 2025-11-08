@@ -113,9 +113,9 @@ export default function CandidateCV({ candidate, setShowCandidateCV }: any) {
                             document={<CandidateCVDocument candidate={candidate} cvData={cvData} />}
                             fileName={`${candidate?.name}-CV.pdf`}
                           >
-                          {({ loading }) =>
-                            loading ? 'Preparing document...' : 'Download CV'
-                          }
+                          {({ loading }) => (
+                            <span>{loading ? 'Preparing document...' : 'Download CV'}</span>
+                          )}
                           </PDFDownloadLink>
                           }
                           {/* Close Modal */}

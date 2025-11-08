@@ -1,6 +1,6 @@
 "use client";
 
-import { act, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import AvatarImage from "@/lib/components/AvatarImage/AvatarImage";
 import { useAppContext } from "@/lib/context/AppContext";
 import axios from "axios";

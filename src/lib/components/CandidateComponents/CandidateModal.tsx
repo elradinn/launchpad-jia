@@ -228,7 +228,7 @@ function CandidateCVAnalysis({ candidate, interviews, setInterviews }: { candida
                             fileName={`${interviews?.[0]?.name}-CV.pdf`}
                     >
                         {({ loading }) =>
-                            loading ? 'Preparing document...' : 
+                            loading ? <span>Preparing document...</span> : 
                         <>
                         <i className="la la-cloud-download-alt" style={{ color: "#414651", fontSize: 16, marginRight: 4 }}></i>
                         <span style={{color: cvData?.length > 0 ? "#414651" : "#1010104d"}}>Download CV</span>

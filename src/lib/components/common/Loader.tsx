@@ -24,53 +24,57 @@ export default function ({ loaderType, loaderData }) {
     const length = loaderData.length;
     const tableWidth = FIGMA_DIMENSIONS.TABLE.WIDTH;
 
-    return Array.from({ length }).map((_, index) => (
-      <div className={styles.contentContainer} key={index}>
-        <div
-          className={styles.userContainer}
-          style={{
-            width: `${getWidthPercentage(columnDetails[0].width, tableWidth)}%`,
-          }}
-        >
-          <div className={styles.userImage} />
-          <div className={styles.userDetails} />
-        </div>
-        <div
-          className={styles.position}
-          style={{
-            width: `${getWidthPercentage(columnDetails[1].width, tableWidth)}%`,
-          }}
-        >
-          <span />
-        </div>
-        <div
-          className={styles.ratingContainer}
-          style={{
-            width: `${getWidthPercentage(columnDetails[2].width, tableWidth)}%`,
-          }}
-        >
-          <span />
-        </div>
-        <div
-          className={styles.feedback}
-          style={{
-            width: `${getWidthPercentage(columnDetails[3].width, tableWidth)}%`,
-          }}
-        >
-          <span />
-        </div>
-        <div
-          className={styles.date}
-          style={{
-            width: `${getWidthPercentage(
-              loaderData.columnDetails[4].width,
-              tableWidth
-            )}%`,
-          }}
-        >
-          <span />
-        </div>
-      </div>
-    ));
+    return (
+      <>
+        {Array.from({ length }).map((_, index) => (
+          <div className={styles.contentContainer} key={index}>
+            <div
+              className={styles.userContainer}
+              style={{
+                width: `${getWidthPercentage(columnDetails[0].width, tableWidth)}%`,
+              }}
+            >
+              <div className={styles.userImage} />
+              <div className={styles.userDetails} />
+            </div>
+            <div
+              className={styles.position}
+              style={{
+                width: `${getWidthPercentage(columnDetails[1].width, tableWidth)}%`,
+              }}
+            >
+              <span />
+            </div>
+            <div
+              className={styles.ratingContainer}
+              style={{
+                width: `${getWidthPercentage(columnDetails[2].width, tableWidth)}%`,
+              }}
+            >
+              <span />
+            </div>
+            <div
+              className={styles.feedback}
+              style={{
+                width: `${getWidthPercentage(columnDetails[3].width, tableWidth)}%`,
+              }}
+            >
+              <span />
+            </div>
+            <div
+              className={styles.date}
+              style={{
+                width: `${getWidthPercentage(
+                  loaderData.columnDetails[4].width,
+                  tableWidth
+                )}%`,
+              }}
+            >
+              <span />
+            </div>
+          </div>
+        ))}
+      </>
+    );
   }
 }
