@@ -723,8 +723,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
             {currentStep === step[0] && (
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 16, alignItems: "flex-start", marginTop: 16 }}>
                     <div style={{ width: "70%", display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>1. Career Information</span>
                                 </div>
@@ -876,10 +875,8 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>2. Job Description</span>
                                 </div>
@@ -900,10 +897,8 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     )}
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>3. Team Access</span>
                                 </div>
@@ -995,11 +990,9 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     </span>
                                 </div>
                             </div>
-                        </div>
                     </div>
                     <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <i className="la la-lightbulb" style={{ color: "#F97316", fontSize: 20 }}></i>
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700 }}>Tips</span>
@@ -1020,7 +1013,6 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     </div>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
             )}
@@ -1028,8 +1020,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
             {currentStep === step[1] && (
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 16, alignItems: "flex-start", marginTop: 16 }}>
                     <div style={{ width: "70%", display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>1. CV Review Settings</span>
                                 </div>
@@ -1077,10 +1068,8 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     </div>
                                 </div>
                             </div>
-                        </div>
                         {/* John Alfred Alfonso */}
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                         <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>2. Pre-Screening Questions</span>
@@ -1338,12 +1327,10 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     )}
                                 </div>
                             </div>
-                        </div>
                     </div>
                     {/* Alfred */}
                     <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <i className="la la-lightbulb" style={{ color: "#F97316", fontSize: 20 }}></i>
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700 }}>Tips</span>
@@ -1357,7 +1344,6 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     </div>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
             )}
@@ -1365,8 +1351,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
             {currentStep === step[2] && (
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 16, alignItems: "flex-start", marginTop: 16 }}>
                     <div style={{ width: "70%", display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>1. AI Interview Settings</span>
                                 </div>
@@ -1422,7 +1407,6 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
                         <InterviewQuestionGeneratorV2
                             questions={questions}
@@ -1432,8 +1416,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                         />
                     </div>
                     <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
-                        <div className="layered-card-outer">
-                            <div className="layered-card-middle">
+                        <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
                                     <i className="la la-lightbulb" style={{ color: "#F97316", fontSize: 20 }}></i>
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700 }}>Tips</span>
@@ -1450,7 +1433,6 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     </div>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
             )}
