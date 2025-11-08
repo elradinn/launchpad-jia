@@ -44,11 +44,7 @@ export default function () {
           showConfirmButton: true,
         }).then((res) => {
           if (res.isConfirmed) {
-            `${
-              window.location.origin.includes("localhost")
-                ? "/job-portal"
-                : `https://www.hellojia.ai`
-            }`;
+            window.location.href = "/job-portal";
           }
         });
       });
@@ -62,11 +58,7 @@ export default function () {
         showConfirmButton: false,
       }).then((res) => {
         if (res.isConfirmed) {
-          `${
-            window.location.origin.includes("localhost")
-              ? "/job-portal"
-              : `https://www.hellojia.ai`
-          }`;
+          window.location.href = "/job-portal";
         }
       });
 
@@ -124,9 +116,7 @@ export default function () {
         confirmButtonText: "Go Back to Profile Page",
       }).then((res) => {
         if (res.isConfirmed) {
-          window.location.href = window.location.origin.includes("localhost")
-            ? "/job-portal"
-            : "https://www.hellojia.ai";
+          window.location.href = "/job-portal";
         }
       });
 

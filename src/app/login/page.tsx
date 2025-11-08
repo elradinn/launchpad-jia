@@ -9,9 +9,7 @@ export default function () {
         window.location.href = "/recruiter-dashboard";
       } else {
         // Applicant dashboard
-        window.location.href = window.location.origin.includes("localhost")
-          ? "/job-portal"
-          : "https://www.hellojia.ai";
+        window.location.href = "/job-portal";
       }
     }
   }, []);

@@ -10,11 +10,7 @@ export default function InterviewPage() {
 
   useEffect(() => {
     if (!localStorage.user) {
-      `${
-        window.location.origin.includes("localhost")
-          ? "/job-portal"
-          : "https://www.hellojia.ai"
-      }`;
+      window.location.href = "/job-portal";
     }
   }, []);
 

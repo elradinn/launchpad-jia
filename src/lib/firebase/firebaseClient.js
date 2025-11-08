@@ -99,9 +99,7 @@ export async function signInWithGoogle(type) {
           if (result.isConfirmed) {
             Swal.close();
           } else if (result.dismiss === Swal.DismissReason.cancel) {
-            window.location.href = host.includes("localhost")
-              ? "/job-portal"
-              : "https://www.hellojia.ai";
+            window.location.href = "/job-portal";
           }
         });
 
@@ -167,9 +165,7 @@ export async function signInWithGoogle(type) {
 
       if (orgData.data.length == 0) {
         localStorage.role = "applicant";
-        window.location.href = window.location.origin.includes("localhost")
-          ? "/job-portal"
-          : "https://www.hellojia.ai";
+        window.location.href = "/job-portal";
         return;
       }
 
