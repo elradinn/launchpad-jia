@@ -810,7 +810,7 @@ export default function ManageCareerPage() {
                             ) : (
                                 <div style={{ display: "flex", flexDirection: "row", gap: 24, marginTop: 24 }}>
                                     {/* Left Column - Accordions */}
-                                    <div style={{ flex: "0 0 65%", display: "flex", flexDirection: "column", gap: 16 }}>
+                                    <div style={{ flex: "0 0 65%", display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
                                 {/* Career Details & Team Access Accordion */}
                                 <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
                                     <button
@@ -1100,6 +1100,247 @@ export default function ManageCareerPage() {
                                                     ))}
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Pipeline Stages Accordion */}
+                                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
+                                    <button
+                                        onClick={() => setOpenAccordion(openAccordion === "Pipeline Stages" ? "" : "Pipeline Stages")}
+                                        style={{
+                                            width: "100%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            padding: "16px 20px",
+                                            background: "#F9FAFB",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            color: "#181D27"
+                                        }}
+                                    >
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <i className={`la la-angle-${openAccordion === "Pipeline Stages" ? 'down' : 'right'}`} style={{ fontSize: 20, color: "#6B7280" }}></i>
+                                            <span>Pipeline Stages</span>
+                                            <span style={{
+                                                background: "#F3F4F6",
+                                                color: "#6B7280",
+                                                padding: "2px 8px",
+                                                borderRadius: "12px",
+                                                fontSize: 12,
+                                                fontWeight: 600
+                                            }}>
+                                                4
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditSection("Pipeline Stages");
+                                                setShowEditModal(true);
+                                            }}
+                                            style={{
+                                                background: "transparent",
+                                                border: "none",
+                                                cursor: "pointer",
+                                                padding: 4
+                                            }}
+                                        >
+                                            <i className="la la-pen" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                        </button>
+                                    </button>
+
+                                    {openAccordion === "Pipeline Stages" && (
+                                        <div style={{ padding: "20px 24px" }}>
+                                            <div style={{
+                                                display: "flex",
+                                                gap: 16,
+                                                overflowX: "auto",
+                                                paddingBottom: 8
+                                            }}>
+                                                {/* CV Screening Stage */}
+                                                <div style={{
+                                                    minWidth: 240,
+                                                    background: "#F9FAFB",
+                                                    border: "1px solid #E5E7EB",
+                                                    borderRadius: 12,
+                                                    padding: 16,
+                                                    flex: "0 0 auto"
+                                                }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                        <i className="la la-file-text" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                                        <span style={{ fontSize: 14, fontWeight: 600, color: "#181D27" }}>CV Screening</span>
+                                                    </div>
+                                                    <div style={{ marginBottom: 8 }}>
+                                                        <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600 }}>Substages</span>
+                                                    </div>
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            Waiting Submission
+                                                        </div>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            For Review
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* AI Interview Stage */}
+                                                <div style={{
+                                                    minWidth: 240,
+                                                    background: "#F9FAFB",
+                                                    border: "1px solid #E5E7EB",
+                                                    borderRadius: 12,
+                                                    padding: 16,
+                                                    flex: "0 0 auto"
+                                                }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                        <i className="la la-robot" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                                        <span style={{ fontSize: 14, fontWeight: 600, color: "#181D27" }}>AI Interview</span>
+                                                    </div>
+                                                    <div style={{ marginBottom: 8 }}>
+                                                        <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600 }}>Substages</span>
+                                                    </div>
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            Waiting Interview
+                                                        </div>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            For Review
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Final Human Interview Stage */}
+                                                <div style={{
+                                                    minWidth: 240,
+                                                    background: "#F9FAFB",
+                                                    border: "1px solid #E5E7EB",
+                                                    borderRadius: 12,
+                                                    padding: 16,
+                                                    flex: "0 0 auto"
+                                                }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                        <i className="la la-users" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                                        <span style={{ fontSize: 14, fontWeight: 600, color: "#181D27" }}>Final Human Interview</span>
+                                                    </div>
+                                                    <div style={{ marginBottom: 8 }}>
+                                                        <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600 }}>Substages</span>
+                                                    </div>
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            Waiting Schedule
+                                                        </div>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            Waiting Interview
+                                                        </div>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            For Review
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Job Offer Stage */}
+                                                <div style={{
+                                                    minWidth: 240,
+                                                    background: "#F9FAFB",
+                                                    border: "1px solid #E5E7EB",
+                                                    borderRadius: 12,
+                                                    padding: 16,
+                                                    flex: "0 0 auto"
+                                                }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                        <i className="la la-briefcase" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                                        <span style={{ fontSize: 14, fontWeight: 600, color: "#181D27" }}>Job Offer</span>
+                                                    </div>
+                                                    <div style={{ marginBottom: 8 }}>
+                                                        <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 600 }}>Substages</span>
+                                                    </div>
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            For Final Review
+                                                        </div>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            Waiting Offer Acceptance
+                                                        </div>
+                                                        <div style={{
+                                                            background: "#fff",
+                                                            border: "1px solid #E5E7EB",
+                                                            borderRadius: 8,
+                                                            padding: "10px 12px",
+                                                            fontSize: 13,
+                                                            color: "#6B7280"
+                                                        }}>
+                                                            For Contract Signing
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
