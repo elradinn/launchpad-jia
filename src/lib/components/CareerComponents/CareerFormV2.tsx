@@ -217,6 +217,22 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         }
     }, [initialSection]);
 
+    // Check if a step has data filled in
+    function hasStepData(stepIndex: number) {
+        switch (stepIndex) {
+            case 0: // Career Details & Team Access
+                return jobTitle?.trim().length > 0 || aboutRole?.trim().length > 0 || employmentType?.trim().length > 0 || workSetup?.trim().length > 0;
+            case 1: // CV Review & Pre-screening
+                return preScreeningQuestions.length > 0 || cvSecretPrompt?.trim().length > 0;
+            case 2: // AI Interview Setup
+                return questions.some(q => q.questions.length > 0) || aiInterviewSecretPrompt?.trim().length > 0;
+            case 3: // Pipeline Stages
+                return pipelineStages.length > 0;
+            default:
+                return false;
+        }
+    }
+
     function processState(index, isAdvance = false) {
         const currentStepIndex = step.indexOf(currentStep);
 
@@ -226,7 +242,8 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         }
 
         if (currentStepIndex === index) {
-            return isAdvance ? stepStatus[2] : stepStatus[1];
+            // Show "In Progress" if there's data in the current step, otherwise "Pending"
+            return isAdvance || hasStepData(index) ? stepStatus[2] : stepStatus[1];
         }
 
         if (currentStepIndex > index) {
