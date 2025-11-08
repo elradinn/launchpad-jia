@@ -236,9 +236,14 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
     function processState(index, isAdvance = false) {
         const currentStepIndex = step.indexOf(currentStep);
 
-        // Show alert icon for step 1 if there are validation errors and user tried to continue
-        if (index === 0 && showValidationErrors && !isStep1Valid()) {
-            return "Alert";
+        // Show alert icon only for the current step if there are validation errors and user tried to continue
+        if (index === currentStepIndex && showValidationErrors) {
+            if (index === 0 && !isStep1Valid()) {
+                return "Alert";
+            }
+            if (index === 2 && !isStep3Valid()) {
+                return "Alert";
+            }
         }
 
         if (currentStepIndex === index) {
@@ -362,7 +367,8 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
 
     // Validation for Step 1 (Career Details & Team Access)
     const isStep1Valid = () => {
-        return jobTitle?.trim().length > 0 && employmentType?.trim().length > 0 && workSetup?.trim().length > 0 && aboutRole?.trim().length > 0;
+        const hasValidSalary = minimumSalary && maximumSalary && Number(minimumSalary) > 0 && Number(maximumSalary) > 0 && Number(minimumSalary) <= Number(maximumSalary);
+        return jobTitle?.trim().length > 0 && employmentType?.trim().length > 0 && workSetup?.trim().length > 0 && province?.trim().length > 0 && city?.trim().length > 0 && aboutRole?.trim().length > 0 && hasValidSalary;
     }
 
     const validateStep1 = () => {
@@ -377,14 +383,46 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         if (!workSetup?.trim()) {
             errors.workSetup = true;
         }
+        if (!province?.trim()) {
+            errors.province = true;
+        }
+        if (!city?.trim()) {
+            errors.city = true;
+        }
         if (!aboutRole?.trim()) {
             errors.aboutRole = true;
+        }
+        
+        // Validate salary fields are required
+        if (!minimumSalary || Number(minimumSalary) <= 0) {
+            errors.minimumSalary = true;
+        }
+        if (!maximumSalary || Number(maximumSalary) <= 0) {
+            errors.maximumSalary = true;
         }
         
         // Validate salary range if both values are provided
         if (minimumSalary && maximumSalary && Number(minimumSalary) > Number(maximumSalary)) {
             errors.minimumSalary = true;
             errors.maximumSalary = true;
+        }
+
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
+    }
+
+    // Validation for Step 3 (AI Interview Setup)
+    const isStep3Valid = () => {
+        const totalQuestions = questions.reduce((acc, group) => acc + group.questions.length, 0);
+        return totalQuestions >= 5;
+    }
+
+    const validateStep3 = () => {
+        const errors: {[key: string]: boolean} = {};
+        const totalQuestions = questions.reduce((acc, group) => acc + group.questions.length, 0);
+
+        if (totalQuestions < 5) {
+            errors.aiInterviewQuestions = true;
         }
 
         setValidationErrors(errors);
@@ -652,6 +690,15 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                 return;
                             }
                         }
+
+                        // Validate step 3 (AI Interview Setup) before continuing
+                        if (currentStep === step[2]) {
+                            if (!validateStep3()) {
+                                setShowValidationErrors(true);
+                                errorToast("Please add at least 5 interview questions", 1300);
+                                return;
+                            }
+                        }
                         
                         if (mode === "edit") {
                             // Edit mode logic
@@ -823,20 +870,36 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                                     const cities = philippineCitiesAndProvinces.cities.filter((city) => city.province === provinceObj.key);
                                                     setCityList(cities);
                                                     setCity(cities[0]?.name || "");
+                                                    if (validationErrors.province) {
+                                                        setValidationErrors({...validationErrors, province: false});
+                                                    }
                                                 }}
                                                 screeningSetting={province}
                                                 settingList={provinceList}
                                                 placeholder="Select State / Province"
+                                                hasError={showValidationErrors && validationErrors.province}
                                             />
+                                            {showValidationErrors && validationErrors.province && (
+                                                <span style={{ fontSize: 12, color: "#DC2626", marginTop: 4, display: "block" }}>This is a required field.</span>
+                                            )}
                                         </div>
                                         <div>
                                             <span>City</span>
                                             <CustomDropdown
-                                                onSelectSetting={(c) => setCity(c)}
+                                                onSelectSetting={(c) => {
+                                                    setCity(c);
+                                                    if (validationErrors.city) {
+                                                        setValidationErrors({...validationErrors, city: false});
+                                                    }
+                                                }}
                                                 screeningSetting={city}
                                                 settingList={cityList}
                                                 placeholder="Select City"
+                                                hasError={showValidationErrors && validationErrors.city}
                                             />
+                                            {showValidationErrors && validationErrors.city && (
+                                                <span style={{ fontSize: 12, color: "#DC2626", marginTop: 4, display: "block" }}>This is a required field.</span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -859,13 +922,17 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                                 onChange={(value) => {
                                                     setMinimumSalary(value);
                                                     if (validationErrors.minimumSalary) {
-                                                        setValidationErrors({...validationErrors, minimumSalary: false});
+                                                        setValidationErrors({...validationErrors, minimumSalary: false, maximumSalary: false});
                                                     }
                                                 }}
                                                 placeholder="0"
                                                 min={0}
                                                 hasError={showValidationErrors && validationErrors.minimumSalary}
-                                                errorMessage="Minimum salary cannot be greater than maximum salary."
+                                                errorMessage={
+                                                    minimumSalary && maximumSalary && Number(minimumSalary) > Number(maximumSalary)
+                                                        ? "Minimum salary cannot be greater than maximum salary."
+                                                        : "This is a required field."
+                                                }
                                                 prefix="P"
                                                 suffix="PHP"
                                             />
@@ -878,13 +945,17 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                                 onChange={(value) => {
                                                     setMaximumSalary(value);
                                                     if (validationErrors.maximumSalary) {
-                                                        setValidationErrors({...validationErrors, maximumSalary: false});
+                                                        setValidationErrors({...validationErrors, minimumSalary: false, maximumSalary: false});
                                                     }
                                                 }}
                                                 placeholder="0"
                                                 min={0}
                                                 hasError={showValidationErrors && validationErrors.maximumSalary}
-                                                errorMessage="Maximum salary cannot be less than minimum salary."
+                                                errorMessage={
+                                                    minimumSalary && maximumSalary && Number(minimumSalary) > Number(maximumSalary)
+                                                        ? "Maximum salary cannot be less than minimum salary."
+                                                        : "This is a required field."
+                                                }
                                                 prefix="P"
                                                 suffix="PHP"
                                             />
@@ -1427,9 +1498,19 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
 
                         <InterviewQuestionGeneratorV2
                             questions={questions}
-                            setQuestions={(questions) => setQuestions(questions)}
+                            setQuestions={(questions) => {
+                                setQuestions(questions);
+                                // Clear validation error when questions are added
+                                if (validationErrors.aiInterviewQuestions) {
+                                    const totalQuestions = questions.reduce((acc, group) => acc + group.questions.length, 0);
+                                    if (totalQuestions >= 5) {
+                                        setValidationErrors({...validationErrors, aiInterviewQuestions: false});
+                                    }
+                                }
+                            }}
                             jobTitle={jobTitle}
                             description={aboutRole}
+                            showValidationError={showValidationErrors && validationErrors.aiInterviewQuestions}
                         />
                     </div>
                     <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>

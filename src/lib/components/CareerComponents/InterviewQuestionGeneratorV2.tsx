@@ -11,7 +11,7 @@ import InterviewQuestionModal from "./InterviewQuestionModal";
 import FullScreenLoadingAnimation from "./FullScreenLoadingAnimation";
 
 export default function (props) {
-  const { questions, setQuestions, jobTitle, description } = props;
+  const { questions, setQuestions, jobTitle, description, showValidationError } = props;
   const [questionGenPrompt, setQuestionGenPrompt] = useState("");
   const questionCount = 5;
   const [showQuestionModal, setShowQuestionModal] = useState("");
@@ -364,6 +364,19 @@ export default function (props) {
               </button>
           </div>
             <div className="layered-card-content">
+              {showValidationError && (
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 8,
+                  marginBottom: 16
+                }}>
+                  <i className="la la-exclamation-triangle" style={{ color: "#DC2626", fontSize: 20 }}></i>
+                  <span style={{ fontSize: 14, color: "#DC2626", fontWeight: 500 }}>
+                    Please add at least 5 interview questions.
+                  </span>
+                </div>
+              )}
               <div className="questions-set">
           {questions.map((group, index) => (
             <div
