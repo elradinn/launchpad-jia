@@ -997,7 +997,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                             </div>
                         </div>
                     </div>
-                    <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
                         <div className="layered-card-outer">
                             <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -1341,7 +1341,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                         </div>
                     </div>
                     {/* Alfred */}
-                    <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
                         <div className="layered-card-outer">
                             <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -1431,7 +1431,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                             description={aboutRole}
                         />
                     </div>
-                    <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
                         <div className="layered-card-outer">
                             <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
