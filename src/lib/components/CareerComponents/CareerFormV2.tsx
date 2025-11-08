@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { assetConstants } from "@/lib/utils/constantsV2";
 import styles from "@/lib/styles/screens/careerForm.module.scss"
 import CustomDropdown from "@/lib/components/CareerComponents/CustomDropdown";
+import CustomInput from "@/lib/components/CareerComponents/CustomInput";
 import RichTextEditor from "@/lib/components/CareerComponents/RichTextEditor";
 import InterviewQuestionGeneratorV2 from "@/lib/components/CareerComponents/InterviewQuestionGeneratorV2";
 import philippineCitiesAndProvinces from "../../../../public/philippines-locations.json";
@@ -51,11 +52,11 @@ interface CareerFormV2Props {
 export default function CareerFormV2({ career, mode = "create", initialSection, onClose }: CareerFormV2Props = {}) {
     const [currentStep, setCurrentStep] = useState(initialSection || step[0]);
     const [jobTitle, setJobTitle] = useState(career?.jobTitle || "");
-    const [employmentType, setEmploymentType] = useState(career?.employmentType || "Full-time");
-    const [workSetup, setWorkSetup] = useState(career?.workSetup || "Hybrid");
+    const [employmentType, setEmploymentType] = useState(career?.employmentType || "");
+    const [workSetup, setWorkSetup] = useState(career?.workSetup || "");
     const [country, setCountry] = useState(career?.country || "Philippines");
-    const [province, setProvince] = useState(career?.province || "Metro Manila");
-    const [city, setCity] = useState(career?.location || "Pasig City");
+    const [province, setProvince] = useState(career?.province || "");
+    const [city, setCity] = useState(career?.location || "");
     const [salaryNegotiable, setSalaryNegotiable] = useState(career?.salaryNegotiable ?? true);
     const [minimumSalary, setMinimumSalary] = useState(career?.minimumSalary?.toString() || "");
     const [maximumSalary, setMaximumSalary] = useState(career?.maximumSalary?.toString() || "");
@@ -188,6 +189,10 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
     ]);
     const [openAccordion, setOpenAccordion] = useState("Career Details & Team Access");
 
+    // Validation state
+    const [validationErrors, setValidationErrors] = useState<{[key: string]: boolean}>({});
+    const [showValidationErrors, setShowValidationErrors] = useState(false);
+
     // API-related state
     const { user, orgID } = useAppContext();
     const [showSaveModal, setShowSaveModal] = useState("");
@@ -214,6 +219,11 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
 
     function processState(index, isAdvance = false) {
         const currentStepIndex = step.indexOf(currentStep);
+
+        // Show alert icon for step 1 if there are validation errors and user tried to continue
+        if (index === 0 && showValidationErrors && !isStep1Valid()) {
+            return "Alert";
+        }
 
         if (currentStepIndex === index) {
             return isAdvance ? stepStatus[2] : stepStatus[1];
@@ -331,6 +341,37 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
     // API Functions
     const isFormValid = () => {
         return jobTitle?.trim().length > 0 && aboutRole?.trim().length > 0 && questions.some((q) => q.questions.length > 0) && workSetup?.trim().length > 0;
+    }
+
+    // Validation for Step 1 (Career Details & Team Access)
+    const isStep1Valid = () => {
+        return jobTitle?.trim().length > 0 && employmentType?.trim().length > 0 && workSetup?.trim().length > 0 && aboutRole?.trim().length > 0;
+    }
+
+    const validateStep1 = () => {
+        const errors: {[key: string]: boolean} = {};
+
+        if (!jobTitle?.trim()) {
+            errors.jobTitle = true;
+        }
+        if (!employmentType?.trim()) {
+            errors.employmentType = true;
+        }
+        if (!workSetup?.trim()) {
+            errors.workSetup = true;
+        }
+        if (!aboutRole?.trim()) {
+            errors.aboutRole = true;
+        }
+        
+        // Validate salary range if both values are provided
+        if (minimumSalary && maximumSalary && Number(minimumSalary) > Number(maximumSalary)) {
+            errors.minimumSalary = true;
+            errors.maximumSalary = true;
+        }
+
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
     }
 
     const confirmSaveCareer = (status: string) => {
@@ -495,6 +536,9 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 // Move to next step
                 if (currentStepIndex < step.length - 1) {
                     setCurrentStep(nextStep);
+                    // Clear validation errors when moving to next step
+                    setShowValidationErrors(false);
+                    setValidationErrors({});
                 }
             }
         } catch (error) {
@@ -579,81 +623,99 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                             Save as Unpublished
                         </button>
                     )}
-                    <button
-                        disabled={isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())}
-                        style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
-                        onClick={() => {
-                            if (mode === "edit") {
-                                // Edit mode logic
-                                if (isDraft) {
-                                    // If on last step, publish instead of continue
-                                    if (currentStep === step[step.length - 1]) {
-                                        confirmSaveCareer("active");
-                                    } else {
-                                        saveDraftAndContinue();
-                                    }
-                                } else {
-                                    confirmSaveCareer(career?.status || "active");
-                                }
-                            } else {
-                                // Create mode logic
+                <button
+                    disabled={isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())}
+                    style={{ width: "fit-content", background: "black", color: "#fff", border: "1px solid #E9EAEB", padding: "8px 16px", borderRadius: "60px", cursor: (isSavingCareer || (mode === "edit" && !isDraft && !isFormValid())) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+                    onClick={() => {
+                        // Validate step 1 before continuing
+                        if (currentStep === step[0]) {
+                            if (!validateStep1()) {
+                                setShowValidationErrors(true);
+                                errorToast("Please fill in all required fields", 1300);
+                                return;
+                            }
+                        }
+                        
+                        if (mode === "edit") {
+                            // Edit mode logic
+                            if (isDraft) {
+                                // If on last step, publish instead of continue
                                 if (currentStep === step[step.length - 1]) {
                                     confirmSaveCareer("active");
                                 } else {
                                     saveDraftAndContinue();
                                 }
+                            } else {
+                                confirmSaveCareer(career?.status || "active");
                             }
-                        }}>
-                        <i className="la la-check-circle" style={{ color: "#fff", fontSize: 20, marginRight: 8 }}></i>
-                        {mode === "edit" 
-                            ? (isDraft 
-                                ? (currentStep === step[step.length - 1] ? "Publish" : "Save and Continue")
-                                : "Save Changes")
-                            : (currentStep === step[step.length - 1] ? "Publish" : "Save and Continue")}
-                    </button>
+                        } else {
+                            // Create mode logic
+                            if (currentStep === step[step.length - 1]) {
+                                confirmSaveCareer("active");
+                            } else {
+                                saveDraftAndContinue();
+                            }
+                        }
+                    }}>
+                    <i className="la la-check-circle" style={{ color: "#fff", fontSize: 20, marginRight: 8 }}></i>
+                    {mode === "edit" 
+                        ? (isDraft 
+                            ? (currentStep === step[step.length - 1] ? "Publish" : "Save and Continue")
+                            : "Save Changes")
+                        : (currentStep === step[step.length - 1] ? "Publish" : "Save and Continue")}
+                </button>
                 </div>
             </div>
             {/* Only show stepper for create mode or draft edits */}
             {(mode === "create" || isDraft) && (
             <div className={styles.stepContainer}>
                 <div className={styles.step}>
-                    {step.map((_, index) => (
-                        <div className={styles.stepBar} key={index}>
-                            <img
-                                alt=""
-                                src={
-                                    assetConstants[
-                                    processState(index, true)
-                                        .toLowerCase()
-                                        .replace(" ", "_")
-                                    ]
-                                }
-                            />
-                            {index < step.length - 1 && (
-                                <hr
-                                    className={
-                                        styles[
-                                        processState(index).toLowerCase().replace(" ", "_")
-                                        ]
-                                    }
+                    {step.map((_, index) => {
+                        const state = processState(index, true);
+                        const isAlert = state === "Alert";
+                        const iconSrc = isAlert ? assetConstants.alert : assetConstants[state.toLowerCase().replace(" ", "_")];
+                        // For line styling, use the actual state (not alert)
+                        const lineState = isAlert ? stepStatus[1] : processState(index);
+                        
+                        return (
+                            <div className={styles.stepBar} key={index}>
+                                <img
+                                    alt=""
+                                    src={iconSrc}
                                 />
-                            )}
-                        </div>
-                    ))}
+                                {index < step.length - 1 && (
+                                    <hr
+                                        className={
+                                            styles[
+                                            lineState.toLowerCase().replace(" ", "_")
+                                            ]
+                                        }
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className={styles.step}>
-                    {step.map((item, index) => (
-                        <span
-                            className={`${styles.stepDetails} ${styles[
-                                processState(index, true).toLowerCase().replace(" ", "_")
-                            ]
-                                }`}
-                            key={index}
-                        >
-                            {item}
-                        </span>
-                    ))}
+                    {step.map((item, index) => {
+                        const state = processState(index, true);
+                        const isAlert = state === "Alert";
+                        // For text styling, use the actual state (not alert)
+                        const textState = isAlert ? stepStatus[1] : state;
+                        
+                        return (
+                            <span
+                                className={`${styles.stepDetails} ${styles[
+                                    textState.toLowerCase().replace(" ", "_")
+                                ]
+                                    }`}
+                                key={index}
+                            >
+                                {item}
+                            </span>
+                        );
+                    })}
                 </div>
             </div>
             )}
@@ -670,11 +732,17 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700, marginBottom: 16, display: "block" }}>Basic Information</span>
 
                                     <span>Job Title</span>
-                                    <input
+                                    <CustomInput
                                         value={jobTitle}
-                                        className="form-control"
+                                        onChange={(value) => {
+                                            setJobTitle(value);
+                                            if (validationErrors.jobTitle) {
+                                                setValidationErrors({...validationErrors, jobTitle: false});
+                                            }
+                                        }}
                                         placeholder="Enter job title"
-                                        onChange={(e) => setJobTitle(e.target.value || "")}
+                                        hasError={showValidationErrors && validationErrors.jobTitle}
+                                        errorMessage="This is a required field."
                                     />
 
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700, marginTop: 24, marginBottom: 16, display: "block" }}>Work Setting</span>
@@ -683,20 +751,38 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                         <div>
                                             <span>Employment Type</span>
                                             <CustomDropdown
-                                                onSelectSetting={(type) => setEmploymentType(type)}
+                                                onSelectSetting={(type) => {
+                                                    setEmploymentType(type);
+                                                    if (validationErrors.employmentType) {
+                                                        setValidationErrors({...validationErrors, employmentType: false});
+                                                    }
+                                                }}
                                                 screeningSetting={employmentType}
                                                 settingList={employmentTypeOptions}
                                                 placeholder="Select Employment Type"
+                                                hasError={showValidationErrors && validationErrors.employmentType}
                                             />
+                                            {showValidationErrors && validationErrors.employmentType && (
+                                                <span style={{ fontSize: 12, color: "#DC2626", marginTop: 4, display: "block" }}>This is a required field.</span>
+                                            )}
                                         </div>
                                         <div>
                                             <span>Arrangement</span>
                                             <CustomDropdown
-                                                onSelectSetting={(setup) => setWorkSetup(setup)}
+                                                onSelectSetting={(setup) => {
+                                                    setWorkSetup(setup);
+                                                    if (validationErrors.workSetup) {
+                                                        setValidationErrors({...validationErrors, workSetup: false});
+                                                    }
+                                                }}
                                                 screeningSetting={workSetup}
                                                 settingList={workSetupOptions}
                                                 placeholder="Select Work Setup"
+                                                hasError={showValidationErrors && validationErrors.workSetup}
                                             />
+                                            {showValidationErrors && validationErrors.workSetup && (
+                                                <span style={{ fontSize: 12, color: "#DC2626", marginTop: 4, display: "block" }}>This is a required field.</span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -751,67 +837,41 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                                         <div>
                                             <span>Minimum Salary</span>
-                                            <div style={{ position: "relative" }}>
-                                                <span style={{
-                                                    position: "absolute",
-                                                    left: "12px",
-                                                    top: "50%",
-                                                    transform: "translateY(-50%)",
-                                                    color: "#6c757d",
-                                                    fontSize: "16px",
-                                                    pointerEvents: "none",
-                                                }}>P</span>
-                                                <input
-                                                    type="number"
-                                                    className="form-control"
-                                                    style={{ paddingLeft: "28px", paddingRight: "50px" }}
-                                                    placeholder="0"
-                                                    min={0}
-                                                    value={minimumSalary}
-                                                    onChange={(e) => setMinimumSalary(e.target.value || "")}
-                                                />
-                                                <span style={{
-                                                    position: "absolute",
-                                                    right: "12px",
-                                                    top: "50%",
-                                                    transform: "translateY(-50%)",
-                                                    color: "#6c757d",
-                                                    fontSize: "14px",
-                                                    pointerEvents: "none",
-                                                }}>PHP</span>
-                                            </div>
+                                            <CustomInput
+                                                type="number"
+                                                value={minimumSalary}
+                                                onChange={(value) => {
+                                                    setMinimumSalary(value);
+                                                    if (validationErrors.minimumSalary) {
+                                                        setValidationErrors({...validationErrors, minimumSalary: false});
+                                                    }
+                                                }}
+                                                placeholder="0"
+                                                min={0}
+                                                hasError={showValidationErrors && validationErrors.minimumSalary}
+                                                errorMessage="Minimum salary cannot be greater than maximum salary."
+                                                prefix="P"
+                                                suffix="PHP"
+                                            />
                                         </div>
                                         <div>
                                             <span>Maximum Salary</span>
-                                            <div style={{ position: "relative" }}>
-                                                <span style={{
-                                                    position: "absolute",
-                                                    left: "12px",
-                                                    top: "50%",
-                                                    transform: "translateY(-50%)",
-                                                    color: "#6c757d",
-                                                    fontSize: "16px",
-                                                    pointerEvents: "none",
-                                                }}>P</span>
-                                                <input
-                                                    type="number"
-                                                    className="form-control"
-                                                    style={{ paddingLeft: "28px", paddingRight: "50px" }}
-                                                    placeholder="0"
-                                                    min={0}
-                                                    value={maximumSalary}
-                                                    onChange={(e) => setMaximumSalary(e.target.value || "")}
-                                                />
-                                                <span style={{
-                                                    position: "absolute",
-                                                    right: "12px",
-                                                    top: "50%",
-                                                    transform: "translateY(-50%)",
-                                                    color: "#6c757d",
-                                                    fontSize: "14px",
-                                                    pointerEvents: "none",
-                                                }}>PHP</span>
-                                            </div>
+                                            <CustomInput
+                                                type="number"
+                                                value={maximumSalary}
+                                                onChange={(value) => {
+                                                    setMaximumSalary(value);
+                                                    if (validationErrors.maximumSalary) {
+                                                        setValidationErrors({...validationErrors, maximumSalary: false});
+                                                    }
+                                                }}
+                                                placeholder="0"
+                                                min={0}
+                                                hasError={showValidationErrors && validationErrors.maximumSalary}
+                                                errorMessage="Maximum salary cannot be less than minimum salary."
+                                                prefix="P"
+                                                suffix="PHP"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -825,7 +885,19 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                 </div>
                                 <div className="layered-card-content">
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700, marginBottom: 16, display: "block" }}>About This Role</span>
-                                    <RichTextEditor setText={setAboutRole} text={aboutRole} />
+                                    <RichTextEditor 
+                                        setText={(value) => {
+                                            setAboutRole(value);
+                                            if (validationErrors.aboutRole) {
+                                                setValidationErrors({...validationErrors, aboutRole: false});
+                                            }
+                                        }} 
+                                        text={aboutRole}
+                                        hasError={showValidationErrors && validationErrors.aboutRole}
+                                    />
+                                    {showValidationErrors && validationErrors.aboutRole && (
+                                        <span style={{ fontSize: 12, color: "#DC2626", marginTop: 8, display: "block" }}>This is a required field.</span>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 
-export default function RichTextEditor({setText, text}) {
+export default function RichTextEditor({setText, text, hasError = false}) {
     const descriptionEditorRef = useRef(null);
 
     const formatText = (command, value = null) => {
@@ -63,19 +63,27 @@ export default function RichTextEditor({setText, text}) {
       }, []);
 
       return (
-        <>
+        <div style={{
+          border: `1px solid ${hasError ? "#DC2626" : "#ddd"}`,
+          borderRadius: "8px",
+          overflow: "hidden",
+          width: "100%"
+        }}>
         <div
           ref={descriptionEditorRef}
           contentEditable={true}
-          className="form-control"
           style={{
             height: "300px",
             overflowY: "auto",
-            borderTopLeftRadius: "0",
-            borderTopRightRadius: "0",
             padding: "12px",
             lineHeight: "1.5",
-            position: "relative"
+            position: "relative",
+            background: "#fff",
+            width: "100%",
+            fontSize: "0.875rem",
+            color: "#181D27",
+            outline: "none",
+            border: "none"
           }}
           onInput={handleDescriptionChange}
           onBlur={handleDescriptionChange}
@@ -84,13 +92,14 @@ export default function RichTextEditor({setText, text}) {
         ></div>
         {/* Rich Text Editor Toolbar */}
         <div style={{ 
-          border: "1px solid #E9EAEB",
-          borderRadius: "0 0 4px 4px",
+          borderTop: "1px solid #E9EAEB",
           backgroundColor: "#FFFFFF",
           display: "flex",
           gap: "4px",
           flexWrap: "wrap",
-          height: "48px"
+          height: "48px",
+          padding: "0 8px",
+          alignItems: "center"
         }}>
           <button
             type="button"
@@ -161,6 +170,6 @@ export default function RichTextEditor({setText, text}) {
             left: 12px;
           }
         `}</style>
-        </>
+        </div>
       )
 }
