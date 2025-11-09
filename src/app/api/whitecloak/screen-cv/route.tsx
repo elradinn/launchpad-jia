@@ -67,6 +67,12 @@ export async function POST(request: Request) {
         });
     }
 
+    // Format CV secret prompt
+    let cvSecretPromptText = "";
+    if (interviewData.cvSecretPrompt && interviewData.cvSecretPrompt.trim()) {
+        cvSecretPromptText = `\n    Additional Evaluation Criteria (Secret Prompt):\n      ${interviewData.cvSecretPrompt}\n`;
+    }
+
     const screeningPrompt = `
     You are a helpful AI assistant.
     You are given a candidate's CV, pre-screening answers, and a job description.
@@ -87,6 +93,9 @@ export async function POST(request: Request) {
     Applicant Pre-screening Answers:
       ${preScreeningText}
 
+    Additional Evaluation Criteria (Secret Prompt):
+      ${cvSecretPromptText}
+
     Processing Steps:
       ${cvScreeningPromptText}
 
@@ -100,7 +109,8 @@ export async function POST(request: Request) {
 
     Processing Instructions:
       - Return only the code JSON, nothing else.
-      - Carefully analyze the applicant's CV and job description.
+      - Carefully analyze the applicant's CV, pre-screening answers, and job description.
+      - If Additional Evaluation Criteria (Secret Prompt) is provided, use it as extra guidance for your assessment while still maintaining accuracy based on the job description.
       - Be as accurate as possible.
       - Give a detailed reason for the result — be clear, concise, and specific.
       - Set result to "Ineligible CV" if the applicant's CV is not in the correct format.
