@@ -49,7 +49,6 @@ export async function POST(request: Request) {
         parsedCV += `${section.name}\n${section.content}\n`;
     });
 
-    // Format pre-screening answers
     let preScreeningText = "";
     if (preScreeningAnswers && interviewData.preScreeningQuestions) {
         preScreeningText = "\n    Pre-screening Questions & Answers:\n";
@@ -67,7 +66,6 @@ export async function POST(request: Request) {
         });
     }
 
-    // Format CV secret prompt
     let cvSecretPromptText = "";
     if (interviewData.cvSecretPrompt && interviewData.cvSecretPrompt.trim()) {
         cvSecretPromptText = `\n    Additional Evaluation Criteria (Secret Prompt):\n      ${interviewData.cvSecretPrompt}\n`;
@@ -75,8 +73,8 @@ export async function POST(request: Request) {
 
     const screeningPrompt = `
     You are a helpful AI assistant.
-    You are given a candidate's CV, pre-screening answers, and a job description.
-    You need to screen BOTH the candidate's CV and pre-screening answers to determine if they are a good fit for the job.
+    You are given a candidate's CV${preScreeningText ? ', pre-screening answers,' : ''} and a job description.
+    You need to screen the candidate's ${preScreeningText ? 'CV and pre-screening answers' : 'CV'} to determine if they are a good fit for the job.
 
     Job Details:
       Job Title:
@@ -89,13 +87,13 @@ export async function POST(request: Request) {
 
     Applicant CV:
       ${parsedCV}
-
+      ${preScreeningText ? `
     Applicant Pre-screening Answers:
       ${preScreeningText}
-
+    ` : ''}${cvSecretPromptText ? `
     Additional Evaluation Criteria (Secret Prompt):
       ${cvSecretPromptText}
-
+    ` : ''}
     Processing Steps:
       ${cvScreeningPromptText}
 
@@ -109,8 +107,8 @@ export async function POST(request: Request) {
 
     Processing Instructions:
       - Return only the code JSON, nothing else.
-      - Carefully analyze the applicant's CV, pre-screening answers, and job description.
-      - If Additional Evaluation Criteria (Secret Prompt) is provided, use it as extra guidance for your assessment while still maintaining accuracy based on the job description.
+      - Carefully analyze the applicant's CV${preScreeningText ? ', pre-screening answers,' : ''} and job description.${preScreeningText ? '\n      - Consider both the CV content and pre-screening answers in your evaluation.' : '\n      - Base your evaluation solely on the CV content since no pre-screening questions were provided.'}
+      - If additional evaluation criteria (Secret Prompt) is provided, use it as extra guidance for your assessment while still maintaining accuracy based on the job description.
       - Be as accurate as possible.
       - Give a detailed reason for the result — be clear, concise, and specific.
       - Set result to "Ineligible CV" if the applicant's CV is not in the correct format.
@@ -230,7 +228,6 @@ export async function POST(request: Request) {
         screeningData.cvSettingResult = "Failed";
     }
 
-    // manage state class
     if (result.result === "Good Fit") {
         screeningData.stateClass = "state-good";
         screeningData.cvSettingResult = "Passed";
@@ -249,18 +246,14 @@ export async function POST(request: Request) {
         screeningData.cvSettingResult = "Failed";
     }
 
-    // check screening setting
     if (interviewData.screeningSetting) {
         if (interviewData.screeningSetting === "Only Strong Fit") {
             if (result.result === "Strong Fit") {
                 screeningData.stateClass = "state-accepted";
                 screeningData.cvSettingResult = "Passed";
-                // screeningData.currentStep = "AI Interview";
-                // screeningData.status = "For Interview";
             } else {
                 screeningData.stateClass = "state-rejected";
                 screeningData.cvSettingResult = "Failed";
-                // screeningData.status = "Failed CV Screening";
             }
         }
 
@@ -268,12 +261,9 @@ export async function POST(request: Request) {
             if (result.result === "Good Fit" || result.result === "Strong Fit") {
                 screeningData.stateClass = "state-accepted";
                 screeningData.cvSettingResult = "Passed";
-                // screeningData.currentStep = "AI Interview";
-                // screeningData.status = "For Interview";
             } else {
                 screeningData.stateClass = "state-rejected";
                 screeningData.cvSettingResult = "Failed";
-                // screeningData.status = "Failed CV Screening";
             }
         }
     }
@@ -288,7 +278,7 @@ export async function POST(request: Request) {
             createdAt: Date.now(),
         });
     }
-    // Update career lastActivityAt to current date
+
     await db
         .collection("careers")
         .updateOne(

@@ -38,7 +38,14 @@ export default function () {
     "Certifications",
     "Awards",
   ];
-  const step = ["Submit CV", "Pre-screening Questions", "Review"];
+  // Dynamic steps based on whether pre-screening questions exist
+  const getSteps = () => {
+    if (preScreeningQuestions.length > 0) {
+      return ["Submit CV", "Pre-screening Questions", "Review"];
+    }
+    return ["Submit CV", "CV Screening", "Review Next Steps"];
+  };
+  const step = getSteps();
   const stepStatus = ["Completed", "Pending", "In Progress"];
 
   function handleDragOver(e) {
@@ -279,16 +286,11 @@ export default function () {
     }
 
     // Move to Pre-screening Questions step or directly to CV screening
-    console.log("Pre-screening questions count:", preScreeningQuestions.length);
-    console.log("Pre-screening questions:", preScreeningQuestions);
-    
     if (preScreeningQuestions.length > 0) {
-      console.log("Moving to pre-screening questions step");
-      setCurrentStep(step[1]);
+      setCurrentStep(getSteps()[1]);
     } else {
-      console.log("No pre-screening questions, moving to CV screening");
       // If no pre-screening questions, proceed directly to CV screening
-      setCurrentStep(step[2]);
+      setCurrentStep(getSteps()[1]);
       performCVScreening();
     }
   }
@@ -339,7 +341,7 @@ export default function () {
       })
       .catch((err) => {
         alert("Error saving CV. Please try again.");
-        setCurrentStep(step[0]);
+        setCurrentStep(getSteps()[0]);
         console.log(err);
       });
   }
@@ -359,7 +361,7 @@ export default function () {
     }
 
     // Move to Review step and perform CV screening
-    setCurrentStep(step[2]);
+    setCurrentStep(getSteps()[2]);
     performCVScreening();
   }
 
@@ -380,14 +382,15 @@ export default function () {
 
         if (result.error) {
           alert(result.message);
-          setCurrentStep(step[1]);
+          setCurrentStep(getSteps()[0]);
         } else {
+          setCurrentStep(getSteps()[2]);
           setScreeningResult(result);
         }
       })
       .catch((err) => {
         alert("Error screening CV. Please try again.");
-        setCurrentStep(step[1]);
+        setCurrentStep(getSteps()[0]);
         console.log(err);
       })
       .finally(() => {
@@ -695,13 +698,15 @@ export default function () {
                       </div>
                     </div>
                   ))}
-                  <button onClick={handleContinueToPreScreening}>Continue</button>
+                  <button onClick={handleContinueToPreScreening}>
+                    {preScreeningQuestions.length > 0 ? "Continue" : "Submit CV"}
+                  </button>
                 </div>
               )}
             </>
           )}
 
-          {currentStep == step[1] && (
+          {currentStep == step[1] && preScreeningQuestions.length > 0 && (
             <div className={styles.cvDetailsContainer}>
               <div style={{ marginBottom: "24px" }}>
                 <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#181D27", marginBottom: "8px" }}>
@@ -835,6 +840,19 @@ export default function () {
               ))}
 
               <button onClick={handlePreScreeningSubmit}>Continue</button>
+            </div>
+          )}
+
+          {currentStep == step[1] && preScreeningQuestions.length === 0 && (
+            <div className={styles.cvScreeningContainer}>
+              <img alt="" src={assetConstants.loading} />
+              <span className={styles.title}>Sit tight!</span>
+              <span className={styles.description}>
+                Our smart reviewer is checking your qualifications.
+              </span>
+              <span className={styles.description}>
+                We'll let you know what's next in just a moment.
+              </span>
             </div>
           )}
 
