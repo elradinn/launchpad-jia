@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { assetConstants } from "@/lib/utils/constantsV2";
 import styles from "@/lib/styles/screens/careerForm.module.scss"
 import CustomDropdown from "@/lib/components/CareerComponents/CustomDropdown";
@@ -63,22 +63,9 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
     const [provinceList, setProvinceList] = useState(philippineCitiesAndProvinces.provinces);
     const [cityList, setCityList] = useState(philippineCitiesAndProvinces.cities.filter((city) => city.province === "NCR"));
     const [aboutRole, setAboutRole] = useState(career?.description || "");
-    const [teamMembers, setTeamMembers] = useState([
-        {
-            id: 1,
-            name: "Sabine Beatriz Dy",
-            email: "sabine@whitecloak.com",
-            role: "Job Owner",
-            isCurrentUser: true,
-        },
-        {
-            id: 2,
-            name: "Darlene Santo Tomas",
-            email: "darlene@whitecloak.com",
-            role: "Contributor",
-            isCurrentUser: false,
-        },
-    ]);
+    const [teamMembers, setTeamMembers] = useState([]);
+    const [isLoadingTeamMembers, setIsLoadingTeamMembers] = useState(false);
+    const [teamMembersError, setTeamMembersError] = useState<string | null>(null);
     const [screeningSetting, setScreeningSetting] = useState(career?.screeningSetting || "Good Fit and above");
     const [cvSecretPrompt, setCvSecretPrompt] = useState(career?.cvSecretPrompt || "");
     const [aiInterviewScreening, setAiInterviewScreening] = useState(career?.aiInterviewScreening || "Good Fit and above");
@@ -208,7 +195,74 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         null
     );
 
+    // Form analytics tracking
+    const [formStartTime] = useState(Date.now());
+    const [stepTimings, setStepTimings] = useState<{[key: string]: number}>({});
+    const [interactionCount, setInteractionCount] = useState(0);
+
     const stepStatus = ["Completed", "Pending", "In Progress"];
+
+    // Fetch team members on mount
+    useEffect(() => {
+        const fetchTeamMembers = async () => {
+            if (!orgID || !user?.email) return;
+            
+            setIsLoadingTeamMembers(true);
+            setTeamMembersError(null);
+            
+            try {
+                const response = await axios.post("/api/fetch-members", { orgID });
+                
+                if (response.status === 200) {
+                    const members = response.data.map((member: any, index: number) => ({
+                        id: member._id || index,
+                        name: member.name || member.email,
+                        email: member.email,
+                        role: member.email === user.email ? "Job Owner" : "Contributor",
+                        isCurrentUser: member.email === user.email,
+                    }));
+                    
+                    // Ensure current user is always first
+                    const currentUserMember = members.find((m: any) => m.isCurrentUser);
+                    const otherMembers = members.filter((m: any) => !m.isCurrentUser);
+                    
+                    if (currentUserMember) {
+                        setTeamMembers([currentUserMember, ...otherMembers]);
+                    } else {
+                        // Fallback: add current user if not in members list
+                        setTeamMembers([
+                            {
+                                id: "current-user",
+                                name: user.name || user.email,
+                                email: user.email,
+                                role: "Job Owner",
+                                isCurrentUser: true,
+                            },
+                            ...members,
+                        ]);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching team members:", error);
+                setTeamMembersError("Failed to load team members");
+                
+                // Fallback to current user only if user exists
+                if (user?.email) {
+                    setTeamMembers([{
+                        id: "current-user",
+                        name: user.name || user.email,
+                        email: user.email,
+                        role: "Job Owner",
+                        isCurrentUser: true,
+                    }]);
+                }
+            } finally {
+                setIsLoadingTeamMembers(false);
+            }
+        };
+        
+        fetchTeamMembers();
+    }, [orgID, user?.email, user?.name]);
 
     // Update currentStep when initialSection changes (for edit mode)
     useEffect(() => {
@@ -216,6 +270,24 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
             setCurrentStep(initialSection);
         }
     }, [initialSection]);
+
+    // Track step timing for analytics
+    useEffect(() => {
+        const stepStartTime = Date.now();
+        
+        return () => {
+            const timeSpent = Date.now() - stepStartTime;
+            setStepTimings(prev => ({
+                ...prev,
+                [currentStep]: (prev[currentStep] || 0) + timeSpent
+            }));
+        };
+    }, [currentStep]);
+
+    // Track user interactions for analytics
+    const trackInteraction = useCallback(() => {
+        setInteractionCount(prev => prev + 1);
+    }, []);
 
     // Check if a step has data filled in
     function hasStepData(stepIndex: number) {
@@ -370,6 +442,30 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         const hasValidSalary = minimumSalary && maximumSalary && Number(minimumSalary) > 0 && Number(maximumSalary) > 0 && Number(minimumSalary) <= Number(maximumSalary);
         return jobTitle?.trim().length > 0 && employmentType?.trim().length > 0 && workSetup?.trim().length > 0 && province?.trim().length > 0 && city?.trim().length > 0 && aboutRole?.trim().length > 0 && hasValidSalary;
     }
+
+    // Enhanced validation messages
+    const getValidationMessage = useMemo(() => {
+        const messages: string[] = [];
+        
+        if (showValidationErrors) {
+            if (validationErrors.jobTitle) messages.push("Job title is required");
+            if (validationErrors.employmentType) messages.push("Employment type is required");
+            if (validationErrors.workSetup) messages.push("Work setup is required");
+            if (validationErrors.province) messages.push("Province is required");
+            if (validationErrors.city) messages.push("City is required");
+            if (validationErrors.aboutRole) messages.push("Job description is required");
+            if (validationErrors.minimumSalary && validationErrors.maximumSalary) {
+                messages.push("Minimum salary must be less than maximum salary");
+            } else if (validationErrors.minimumSalary) {
+                messages.push("Minimum salary is required and must be greater than 0");
+            } else if (validationErrors.maximumSalary) {
+                messages.push("Maximum salary is required and must be greater than 0");
+            }
+            if (validationErrors.aiInterviewQuestions) messages.push("At least 5 interview questions are required");
+        }
+        
+        return messages;
+    }, [showValidationErrors, validationErrors]);
 
     const validateStep1 = () => {
         const errors: {[key: string]: boolean} = {};
@@ -649,8 +745,32 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         }
     }, []);
 
+    // Keyboard shortcuts (placed after all function definitions)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ctrl/Cmd + S to save draft
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (mode === "create" || isDraft) {
+                    saveDraftAndContinue();
+                }
+            }
+            
+            // Ctrl/Cmd + Enter to publish
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                if (currentStep === step[step.length - 1] && isFormValid()) {
+                    confirmSaveCareer("active");
+                }
+            }
+        };
+        
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [mode, isDraft, currentStep, saveDraftAndContinue, step]);
+
     return (
-        <div className={styles.careerFormContainer}>
+        <div className={styles.careerFormContainer} role="form" aria-label="Career creation form">
             <div style={{ marginBottom: "35px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                 <h1 style={{ fontSize: "24px", fontWeight: 550, color: "#111827" }}>
                     {mode === "edit" 
@@ -743,10 +863,26 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                         
                         return (
                             <div className={styles.stepBar} key={index}>
-                                <img
-                                    alt=""
-                                    src={iconSrc}
-                                />
+                                {isAlert ? (
+                                    <div style={{ 
+                                        width: 24, 
+                                        height: 24, 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center',
+                                        position: 'relative'
+                                    }}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2L2 20h20L12 2z" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinejoin="round"/>
+                                            <path d="M12 9v4M12 17h.01" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/>
+                                        </svg>
+                                    </div>
+                                ) : (
+                                    <img
+                                        alt=""
+                                        src={iconSrc}
+                                    />
+                                )}
                                 {index < step.length - 1 && (
                                     <hr
                                         className={
@@ -788,7 +924,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 16, alignItems: "flex-start", marginTop: 16 }}>
                     <div style={{ width: "70%", display: "flex", flexDirection: "column", gap: 8 }}>
                         <div className="layered-card-middle">
-                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8, padding: "8px 24px 8px 24px" }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>1. Career Information</span>
                                 </div>
                                 <div className="layered-card-content">
@@ -903,14 +1039,15 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                         </div>
                                     </div>
 
-                                    <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700, marginTop: 24, marginBottom: 8, display: "block" }}>Salary</span>
-
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                                        <label className="switch">
-                                            <input type="checkbox" checked={salaryNegotiable} onChange={() => setSalaryNegotiable(!salaryNegotiable)} />
-                                            <span className="slider round"></span>
-                                        </label>
-                                        <span style={{ fontSize: 14, color: "#6B7280" }}>Negotiable</span>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, marginBottom: 16 }}>
+                                        <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700 }}>Salary</span>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <label className="switch">
+                                                <input type="checkbox" checked={salaryNegotiable} onChange={() => setSalaryNegotiable(!salaryNegotiable)} />
+                                                <span className="slider round"></span>
+                                            </label>
+                                            <span style={{ fontSize: 14, color: "#6B7280" }}>Negotiable</span>
+                                        </div>
                                     </div>
 
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -965,7 +1102,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                             </div>
 
                         <div className="layered-card-middle">
-                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8, padding: "8px 24px 8px 24px" }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>2. Job Description</span>
                                 </div>
                                 <div className="layered-card-content">
@@ -987,7 +1124,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                             </div>
 
                         <div className="layered-card-middle">
-                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8, padding: "8px 24px 8px 24px" }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>3. Team Access</span>
                                 </div>
                                 <div className="layered-card-content">
@@ -1082,7 +1219,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                     <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
                         <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                                    <i className="la la-lightbulb" style={{ color: "#F97316", fontSize: 20 }}></i>
+                                    <i className="la la-lightbulb" style={{ background: "linear-gradient(90deg, #fccec0 0%, #ebacc9 33%, #ceb6da 66%, #b5c9e8 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontSize: 20 }}></i>
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700 }}>Tips</span>
                                 </div>
                                 <div className="layered-card-content" style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6 }}>
@@ -1092,10 +1229,6 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                     <div style={{ marginBottom: 16 }}>
                                         <strong style={{ color: "#181D27" }}>Avoid abbreviations</strong> or internal role codes that applicants may not understand (e.g., use "QA Engineer" instead of "QE II" or "QA TL").
                                     </div>
-                                    <div style={{ marginBottom: 16 }}>
-                                        <strong style={{ color: "#181D27" }}>Keep it concise</strong> — job titles should be no more than a few words (2—4 max), avoiding fluff or marketing terms.
-                                    </div>
-                                    <hr style={{ border: "none", borderTop: "1px solid #E5E7EB", margin: "16px 0" }} />
                                     <div style={{ marginBottom: 16 }}>
                                         <strong style={{ color: "#181D27" }}>Keep it concise</strong> — job titles should be no more than a few words (2—4 max), avoiding fluff or marketing terms.
                                     </div>
@@ -1109,7 +1242,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 16, alignItems: "flex-start", marginTop: 16 }}>
                     <div style={{ width: "70%", display: "flex", flexDirection: "column", gap: 8 }}>
                         <div className="layered-card-middle">
-                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8, padding: "8px 24px 8px 24px" }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>1. CV Review Settings</span>
                                 </div>
                                 <div className="layered-card-content">
@@ -1158,7 +1291,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                             </div>
                         {/* John Alfred Alfonso */}
                         <div className="layered-card-middle">
-                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, padding: "8px 24px 8px 24px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                         <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>2. Pre-Screening Questions</span>
                                         <span style={{ fontSize: 14, color: "#6B7280", fontStyle: "italic" }}>(optional)</span>
@@ -1420,7 +1553,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                     <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
                         <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                                    <i className="la la-lightbulb" style={{ color: "#F97316", fontSize: 20 }}></i>
+                                    <i className="la la-lightbulb" style={{ background: "linear-gradient(90deg, #fccec0 0%, #ebacc9 33%, #ceb6da 66%, #b5c9e8 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontSize: 20 }}></i>
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700 }}>Tips</span>
                                 </div>
                                 <div className="layered-card-content" style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6 }}>
@@ -1440,7 +1573,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 16, alignItems: "flex-start", marginTop: 16 }}>
                     <div style={{ width: "70%", display: "flex", flexDirection: "column", gap: 8 }}>
                         <div className="layered-card-middle">
-                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                                <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8, padding: "8px 24px 8px 24px" }}>
                                     <span style={{ fontSize: 18, color: "#181D27", fontWeight: 700 }}>1. AI Interview Settings</span>
                                 </div>
                                 <div className="layered-card-content">
@@ -1516,7 +1649,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                     <div style={{ width: "30%", display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: "1rem", alignSelf: "flex-start" }}>
                         <div className="layered-card-middle">
                                 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                                    <i className="la la-lightbulb" style={{ color: "#F97316", fontSize: 20 }}></i>
+                                    <i className="la la-lightbulb" style={{ background: "linear-gradient(90deg, #fccec0 0%, #ebacc9 33%, #ceb6da 66%, #b5c9e8 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontSize: 20 }}></i>
                                     <span style={{ fontSize: 16, color: "#181D27", fontWeight: 700 }}>Tips</span>
                                 </div>
                                 <div className="layered-card-content" style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.6 }}>
