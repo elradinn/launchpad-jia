@@ -46,6 +46,8 @@ export async function POST(request: Request) {
 
     if (career) {
       interview.careerID = career._id;
+      // Include AI Interview Secret Prompt from career for interview analysis
+      interview.aiInterviewSecretPrompt = career.aiInterviewSecretPrompt || "";
     }
 
     interview.config = settings;

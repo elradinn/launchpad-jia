@@ -211,6 +211,12 @@ export default function InterviewAnalysis() {
           msg.content
         }\n`;
       });
+
+      // Include AI Interview Secret Prompt if available
+      let aiInterviewSecretPromptText = "";
+      if (details.aiInterviewSecretPrompt && details.aiInterviewSecretPrompt.trim()) {
+        aiInterviewSecretPromptText = `\n    Additional Evaluation Criteria (Secret Prompt):\n      ${details.aiInterviewSecretPrompt}\n`;
+      }
   
       let llmPrompt = `
       You are a helpful assistant that can answer questions and help with tasks.
@@ -223,9 +229,14 @@ export default function InterviewAnalysis() {
         ${details.jobDescription}
   
       Interview Transcript:
-      ${intSummary}
+      ${intSummary}${aiInterviewSecretPromptText ? `
   
-      ${analysisPrompt}
+      ${aiInterviewSecretPromptText}` : ''}
+  
+      Processing Instructions:
+      ${analysisPrompt}${aiInterviewSecretPromptText ? `
+      
+      - If additional evaluation criteria (Secret Prompt) is provided, use it as extra guidance for your assessment while still maintaining accuracy based on the job description and interview responses.` : ''}
       `;
   
       const response = await axios
