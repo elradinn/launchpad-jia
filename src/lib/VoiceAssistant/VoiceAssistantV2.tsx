@@ -392,6 +392,24 @@ export default function VoiceAssistantV2({
       details.requireVideo = true;
     }
 
+    // Set default config if it is null or undefined
+    if (!details.config) {
+      details.config = {
+        llm_realtime_model: "gpt-4o-realtime-preview-2024-10-01",
+        transcription_model: "whisper-1",
+        transcription_prompt: "",
+        voice: "verse",
+        temperature: 0.8,
+        max_response_output_tokens: 4096,
+        turn_detection: {
+          type: "server_vad"
+        },
+        traits_prompt: {
+          prompt: ""
+        }
+      };
+    }
+
     setInterviewDetails(details);
 
     let selectedQuestions = [];
@@ -436,8 +454,7 @@ export default function VoiceAssistantV2({
       })
       .join("\n")}
 
-    
-      ${details.config.traits_prompt.prompt}
+    ${details.config?.traits_prompt?.prompt ? `\n${details.config.traits_prompt.prompt}` : ''}
     `;
     setMeetingPrompt(interviewInstructions);
   };

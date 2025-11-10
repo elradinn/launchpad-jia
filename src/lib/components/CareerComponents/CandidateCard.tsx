@@ -24,6 +24,66 @@ export default function CandidateCard({ candidate, stage, handleCandidateMenuOpe
 
     const hasPendingInterviewRetakeRequest = candidate?.retakeRequest  && !["Approved", "Rejected"].includes(candidate?.retakeRequest?.status);
     
+    // Determine if candidate is in a review stage (assessed by Jia, not manually endorsed)
+    const isInReviewStage = stage === "CV Review" || stage === "AI Interview Review" || stage === "Human Interview Review";
+    
+    // Determine fit badge details
+    const getFitBadge = () => {
+        if (currentStep === "CV Screening" || stage === "Pending AI Interview" || stage === "AI Interview Review") {
+            const status = cvStatus || "N/A";
+            let color = "#6B7280";
+            let bgColor = "#F3F4F6";
+            let icon = "la-star";
+            
+            if (status === "Strong Fit") {
+                color = "#059669";
+                bgColor = "#D1FAE5";
+                icon = "la-star";
+            } else if (status === "Good Fit") {
+                color = "#2563EB";
+                bgColor = "#DBEAFE";
+                icon = "la-star";
+            } else if (status === "Maybe Fit") {
+                color = "#D97706";
+                bgColor = "#FEF3C7";
+                icon = "la-star-half-alt";
+            } else if (status === "Bad Fit") {
+                color = "#DC2626";
+                bgColor = "#FEE2E2";
+                icon = "la-times-circle";
+            }
+            
+            return { label: `Jia: ${status}`, color, bgColor, icon };
+        } else {
+            const status = jobFit || "N/A";
+            let color = "#6B7280";
+            let bgColor = "#F3F4F6";
+            let icon = "la-star";
+            
+            if (status === "Strong Fit") {
+                color = "#059669";
+                bgColor = "#D1FAE5";
+                icon = "la-star";
+            } else if (status === "Good Fit") {
+                color = "#2563EB";
+                bgColor = "#DBEAFE";
+                icon = "la-star";
+            } else if (status === "Maybe Fit") {
+                color = "#D97706";
+                bgColor = "#FEF3C7";
+                icon = "la-star-half-alt";
+            } else if (status === "Bad Fit") {
+                color = "#DC2626";
+                bgColor = "#FEE2E2";
+                icon = "la-times-circle";
+            }
+            
+            return { label: `Jia: ${status}`, color, bgColor, icon };
+        }
+    };
+    
+    const fitBadge = getFitBadge();
+    
     return (
         <div 
         draggable={true}
@@ -31,7 +91,7 @@ export default function CandidateCard({ candidate, stage, handleCandidateMenuOpe
             e.dataTransfer.setData("candidateId", candidate._id);
             e.dataTransfer.setData("stageKey", stage);
         }}
-        className="candidate-card"
+        className="candidate-card-v2"
         style={{ 
             cursor: "pointer",
             background: hasPendingInterviewRetakeRequest ? "#FFFAEB" : "white"
@@ -40,109 +100,117 @@ export default function CandidateCard({ candidate, stage, handleCandidateMenuOpe
             if (e.defaultPrevented) return;
             handleCandidateMenuOpen({...candidate, stage})
         }}>
-            <div className="candidate-card-section" style={{ justifyContent: "space-between" }}>
-                <CareerFit fit={currentStep === "CV Screening" || stage === "Pending AI Interview" ? `CV: ${cvStatus || "N/A"}` : `Interview: ${jobFit || "N/A"}`} assessment={currentStep === "CV Screening" || stage === "Pending AI Interview" ? cvScreeningReason : extractInterviewAssessment(summary)} />
+            {/* Fit Badge */}
+            <div className="candidate-fit-badge" style={{ 
+                background: fitBadge.bgColor,
+                color: fitBadge.color 
+            }}>
+                <i className={`la ${fitBadge.icon}`} style={{ fontSize: 14 }}></i>
+                <span>{fitBadge.label}</span>
+            </div>
+
+            {/* Candidate Info */}
+            <div className="candidate-info-section">
+                <img src={image} alt={name} className="candidate-avatar" />
+                <div className="candidate-details">
+                    <div className="candidate-name">{name}</div>
+                    <div className="candidate-email">{email}</div>
+                </div>
                 <div className="dropdown">
-                <button style={{ background: "none", border: "none", cursor: "pointer" }} onClick={(e) => {
-                    if (e.defaultPrevented) return;
-                    e.preventDefault();
-                    setMenuOpen(!menuOpen);
-                }}>
-                    <i className="la la-ellipsis-h" style={{ fontSize: 16, color: "#787486" }}></i>
-                </button>
-                {menuOpen && (
-                    <div 
-                    className={`dropdown-menu w-100 mt-1 org-dropdown-anim${
-                        menuOpen ? " show" : ""
-                        }`}
-                    style={{
-                        padding: "10px 0px",
-                    }}
-                    >
+                    <button className="candidate-menu-btn" onClick={(e) => {
+                        if (e.defaultPrevented) return;
+                        e.preventDefault();
+                        setMenuOpen(!menuOpen);
+                    }}>
+                        <i className="la la-ellipsis-h"></i>
+                    </button>
+                    {menuOpen && (
                         <div 
-                        onClick={(e) => {
-                            e.preventDefault();
+                        className={`dropdown-menu w-100 mt-1 org-dropdown-anim${
+                            menuOpen ? " show" : ""
+                            }`}
+                        style={{
+                            padding: "10px 0px",
                         }}
-                        style={{ fontSize: 14, fontWeight: 700, color: "#414651", marginLeft: 15, cursor: "default" }}
                         >
-                        <span>Candidate Menu</span>
-                        </div>
-                        <div className="dropdown-divider"></div>
-                        <div className="dropdown-item" onClick={(e) => {
-                            e.preventDefault();
-                            handleSelectMenuOption();
-                        }}>
-                            <i className="la la-bolt" style={{ fontSize: 16, marginRight: 4 }}></i>
-                            <span>View Analysis by Jia</span>
-                        </div>
-                        <div className="dropdown-item" onClick={(e) => {
-                            e.preventDefault();
-                            handleViewCV();
-                        }}>
-                            <i className="la la-file-alt" style={{ fontSize: 16, marginRight: 4 }}></i>
-                            <span>View CV</span>
-                        </div>
-                        <div className="dropdown-item" onClick={(e) => {
-                            e.preventDefault();
-                            handleViewHistory();
-                        }}>
-                            <i className="la la-history" style={{ fontSize: 16, marginRight: 4 }}></i>
-                            <span>View Application History</span>
-                        </div>
-                        {/* Dropdown divider */}
-                        <div className="dropdown-divider"></div>
-                        <div className="dropdown-item" onClick={(e) => {
-                            e.preventDefault();
-                            handleEndorseCandidate({...candidate, stage});
-                            setMenuOpen(!menuOpen);
-                        }}>
-                            <i className="la la-user-check" style={{ fontSize: 16, marginRight: 4 }}></i>
-                            <span>Endorse Candidate</span>
-                        </div>
-                        <div className="dropdown-item" style={{ color: "#B42318" }} onClick={(e) => {
-                            e.preventDefault();
-                            handleDropCandidate({...candidate, stage});
-                            setMenuOpen(!menuOpen);
-                        }}>
-                            <i className="la la-user-times" style={{ fontSize: 16, marginRight: 4 }}></i>
-                            <span>Drop Candidate</span>
-                        </div>
-                        {hasPendingInterviewRetakeRequest && 
-                        <>
-                            <div className="dropdown-divider"></div>
-                            <div className="dropdown-item" style={{ color: "#DC6803" }} onClick={(e) => {
+                            <div 
+                            onClick={(e) => {
                                 e.preventDefault();
-                                handleRetakeInterview({...candidate, stage});
+                            }}
+                            style={{ fontSize: 14, fontWeight: 700, color: "#414651", marginLeft: 15, cursor: "default" }}
+                            >
+                            <span>Candidate Menu</span>
+                            </div>
+                            <div className="dropdown-divider"></div>
+                            <div className="dropdown-item" onClick={(e) => {
+                                e.preventDefault();
+                                handleSelectMenuOption();
+                            }}>
+                                <i className="la la-bolt" style={{ fontSize: 16, marginRight: 4 }}></i>
+                                <span>View Analysis by Jia</span>
+                            </div>
+                            <div className="dropdown-item" onClick={(e) => {
+                                e.preventDefault();
+                                handleViewCV();
+                            }}>
+                                <i className="la la-file-alt" style={{ fontSize: 16, marginRight: 4 }}></i>
+                                <span>View CV</span>
+                            </div>
+                            <div className="dropdown-item" onClick={(e) => {
+                                e.preventDefault();
+                                handleViewHistory();
+                            }}>
+                                <i className="la la-history" style={{ fontSize: 16, marginRight: 4 }}></i>
+                                <span>View Application History</span>
+                            </div>
+                            {/* Dropdown divider */}
+                            <div className="dropdown-divider"></div>
+                            <div className="dropdown-item" onClick={(e) => {
+                                e.preventDefault();
+                                handleEndorseCandidate({...candidate, stage});
                                 setMenuOpen(!menuOpen);
                             }}>
-                                <span>Review Retake Request</span>
+                                <i className="la la-user-check" style={{ fontSize: 16, marginRight: 4 }}></i>
+                                <span>Endorse Candidate</span>
                             </div>
-                        </>
-                        }
-                    </div>
-                )}
+                            <div className="dropdown-item" style={{ color: "#B42318" }} onClick={(e) => {
+                                e.preventDefault();
+                                handleDropCandidate({...candidate, stage});
+                                setMenuOpen(!menuOpen);
+                            }}>
+                                <i className="la la-user-times" style={{ fontSize: 16, marginRight: 4 }}></i>
+                                <span>Drop Candidate</span>
+                            </div>
+                            {hasPendingInterviewRetakeRequest && 
+                            <>
+                                <div className="dropdown-divider"></div>
+                                <div className="dropdown-item" style={{ color: "#DC6803" }} onClick={(e) => {
+                                    e.preventDefault();
+                                    handleRetakeInterview({...candidate, stage});
+                                    setMenuOpen(!menuOpen);
+                                }}>
+                                    <span>Review Retake Request</span>
+                                </div>
+                            </>
+                            }
+                        </div>
+                    )}
                 </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-                <div className="candidate-card-section">
-                    <img src={image} alt={name} style={{ width: 32, height: 32, borderRadius: "50%", background: "#E0E0E0" }} />
-                    <div>
-                        <div style={{ fontWeight: 500, fontSize: 14 }}>{name}</div>
-                        <div style={{ fontSize: 12, color: "#787486" }}>{email}</div>
-                    </div>
-                </div>
-                {hasPendingInterviewRetakeRequest && 
-                <div style={{ border: "1px solid #FEDF89", background: "#FEEFC7", borderRadius: "20px", color: "#B54708", fontSize: 14, textAlign: "center" }}>
-                    <i className="la la-exclamation-circle" style={{ color: "#B54708", fontSize: 16, marginRight: 4 }}></i>
-                    Requested to retake interview
-                </div>}
-                <div style={{width: "100%", height: 1, background: "#E0E0E0"}}></div>
-            </div>
-            <div className="candidate-card-section" style={{ justifyContent: "space-between" }}>
-                <div style={{ fontSize: 12, color: "#787486" }}>{createdAt ? formatDateToRelativeTime(new Date(createdAt)) : "N/A"}</div>
-                <div style={{ fontSize: 12, color: "#787486" }}>
-                <img src={candidate.applicationMetadata?.updatedBy?.image || "/jia-avatar.png"} alt="Jia Avatar" width={20} height={20} style={{ marginRight: 4, borderRadius: "50%" }} />
-                {candidate.applicationMetadata?.action && candidate.applicationMetadata?.updatedBy ? `${candidate.applicationMetadata?.action} by ${candidate.applicationMetadata?.updatedBy?.name}` : "Assessed by JIA"}
+
+            {/* Retake Request Warning */}
+            {hasPendingInterviewRetakeRequest && 
+            <div className="retake-warning">
+                <i className="la la-exclamation-circle"></i>
+                Retake Request
+            </div>}
+
+            {/* Footer */}
+            <div className="candidate-footer">
+                <div className="candidate-timestamp">{createdAt ? formatDateToRelativeTime(new Date(createdAt)) : "N/A"}</div>
+                <div className="candidate-assessor">
+                    <img src={isInReviewStage ? "/jia-avatar.png" : (candidate.applicationMetadata?.updatedBy?.image || "/jia-avatar.png")} alt="Assessor" className="assessor-avatar" />
+                    <span>{isInReviewStage ? "Assessed by Jia" : (candidate.applicationMetadata?.action && candidate.applicationMetadata?.updatedBy ? `${candidate.applicationMetadata?.action} by ${candidate.applicationMetadata?.updatedBy?.name}` : "Assessed by Jia")}</span>
                 </div>
             </div>
         </div>
