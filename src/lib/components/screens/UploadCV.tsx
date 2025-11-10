@@ -230,12 +230,26 @@ export default function () {
         console.log("Pre-screening questions:", career.preScreeningQuestions);
         
         if (career.preScreeningQuestions && career.preScreeningQuestions.length > 0) {
-          setPreScreeningQuestions(career.preScreeningQuestions);
-          console.log("Set pre-screening questions:", career.preScreeningQuestions);
+          // Normalize question IDs to ensure uniqueness
+          const ids = career.preScreeningQuestions.map(q => q.id);
+          const hasDuplicates = ids.length !== new Set(ids).size;
+          
+          let normalizedQuestions = career.preScreeningQuestions;
+          if (hasDuplicates) {
+            console.log("Duplicate IDs detected, normalizing...");
+            const baseId = Date.now();
+            normalizedQuestions = career.preScreeningQuestions.map((q, index) => ({
+              ...q,
+              id: baseId + index
+            }));
+          }
+          
+          setPreScreeningQuestions(normalizedQuestions);
+          console.log("Set pre-screening questions:", normalizedQuestions);
           
           // Initialize answers object
           const initialAnswers = {};
-          career.preScreeningQuestions.forEach((q) => {
+          normalizedQuestions.forEach((q) => {
             if (q.type === "Range") {
               initialAnswers[q.id] = { min: "", max: "" };
             } else {

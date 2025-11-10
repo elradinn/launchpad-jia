@@ -103,32 +103,51 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
             questions: [],
         },
     ]);
-    const [preScreeningQuestions, setPreScreeningQuestions] = useState(career?.preScreeningQuestions || [
-        {
-            id: 1,
-            question: "How long is your notice period?",
-            type: "Dropdown",
-            options: ["Immediately", "< 30 days", "> 30 days"],
-            rangeMin: "",
-            rangeMax: "",
-        },
-        {
-            id: 2,
-            question: "How often are you willing to report to the office?",
-            type: "Dropdown",
-            options: ["At most 1-2x a week", "At most 3-4x a week", "Open to fully onsite work", "Only open to fully remote work"],
-            rangeMin: "",
-            rangeMax: "",
-        },
-        {
-            id: 3,
-            question: "How much is your expected monthly salary?",
-            type: "Range",
-            options: [],
-            rangeMin: "40000",
-            rangeMax: "60000",
-        },
-    ]);
+    const [preScreeningQuestions, setPreScreeningQuestions] = useState(() => {
+        if (career?.preScreeningQuestions) {
+            // Normalize IDs if there are duplicates
+            const ids = career.preScreeningQuestions.map(q => q.id);
+            const hasDuplicates = ids.length !== new Set(ids).size;
+            
+            if (hasDuplicates) {
+                const baseId = Date.now();
+                return career.preScreeningQuestions.map((q, index) => ({
+                    ...q,
+                    id: baseId + index
+                }));
+            }
+            return career.preScreeningQuestions;
+        }
+        
+        // Default questions with unique IDs
+        const baseId = Date.now();
+        return [
+            {
+                id: baseId,
+                question: "How long is your notice period?",
+                type: "Dropdown",
+                options: ["Immediately", "< 30 days", "> 30 days"],
+                rangeMin: "",
+                rangeMax: "",
+            },
+            {
+                id: baseId + 1,
+                question: "How often are you willing to report to the office?",
+                type: "Dropdown",
+                options: ["At most 1-2x a week", "At most 3-4x a week", "Open to fully onsite work", "Only open to fully remote work"],
+                rangeMin: "",
+                rangeMax: "",
+            },
+            {
+                id: baseId + 2,
+                question: "How much is your expected monthly salary?",
+                type: "Range",
+                options: [],
+                rangeMin: "40000",
+                rangeMax: "60000",
+            },
+        ];
+    });
     const [suggestedQuestions] = useState([
         { id: "notice", title: "Notice Period", question: "How long is your notice period?", added: true },
         { id: "worksetup", title: "Work Setup", question: "Are you willing to report to the office when required?", added: true },
