@@ -851,56 +851,64 @@ export default function ManageCareerPage() {
                                     </button>
 
                                     {openAccordion === "Career Details & Team Access" && (
-                                        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+                                        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column" }}>
                                             {/* Job Title */}
-                                            <div>
+                                            <div style={{ paddingBottom: 20 }}>
                                                 <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Job Title</span>
                                                 <span style={{ fontSize: 14, color: "#181D27" }}>{formData.jobTitle || "—"}</span>
                                             </div>
 
+                                            <div style={{ height: 1, background: "#E5E7EB", marginBottom: 20 }} />
+
                                             {/* Employment Type & Work Arrangement */}
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                                                <div>
-                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Employment Type</span>
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, paddingBottom: 20 }}>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, marginBottom: 4 }}>Employment Type</span>
                                                     <span style={{ fontSize: 14, color: "#181D27" }}>{formData.employmentType || "Full-time"}</span>
                                                 </div>
-                                                <div>
-                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Work Arrangement</span>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, marginBottom: 4 }}>Work Arrangement</span>
                                                     <span style={{ fontSize: 14, color: "#181D27" }}>{formData.workSetup || "Hybrid"}</span>
                                                 </div>
                                             </div>
 
+                                            <div style={{ height: 1, background: "#E5E7EB", marginBottom: 20 }} />
+
                                             {/* Location */}
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
-                                                <div>
-                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Country</span>
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, paddingBottom: 20 }}>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, marginBottom: 4 }}>Country</span>
                                                     <span style={{ fontSize: 14, color: "#181D27" }}>Philippines</span>
                                                 </div>
-                                                <div>
-                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>State / Province</span>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, marginBottom: 4 }}>State / Province</span>
                                                     <span style={{ fontSize: 14, color: "#181D27" }}>{formData.province || "Metro Manila"}</span>
                                                 </div>
-                                                <div>
-                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>City</span>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, marginBottom: 4 }}>City</span>
                                                     <span style={{ fontSize: 14, color: "#181D27" }}>{formData.location || "Pasig City"}</span>
                                                 </div>
                                             </div>
 
+                                            <div style={{ height: 1, background: "#E5E7EB", marginBottom: 20 }} />
+
                                             {/* Salary */}
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                                                <div>
-                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Minimum Salary</span>
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, paddingBottom: 20 }}>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, marginBottom: 4 }}>Minimum Salary</span>
                                                     <span style={{ fontSize: 14, color: "#181D27" }}>
                                                         {formData.salaryNegotiable ? "Negotiable" : formData.minimumSalary ? `₱${formData.minimumSalary} PHP` : "—"}
                                                     </span>
                                                 </div>
-                                                <div>
-                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Maximum Salary</span>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, marginBottom: 4 }}>Maximum Salary</span>
                                                     <span style={{ fontSize: 14, color: "#181D27" }}>
                                                         {formData.salaryNegotiable ? "Negotiable" : formData.maximumSalary ? `₱${formData.maximumSalary} PHP` : "—"}
                                                     </span>
                                                 </div>
                                             </div>
+
+                                            <div style={{ height: 1, background: "#E5E7EB", marginBottom: 20 }} />
 
                                             {/* Job Description */}
                                             <div>
@@ -1348,30 +1356,83 @@ export default function ManageCareerPage() {
 
                             {/* Right Column - Additional Details */}
                             <div style={{ flex: "0 0 calc(35% - 24px)", display: "flex", flexDirection: "column", gap: 16 }}>
-                                {/* Additional Details */}
+                                {/* Team Access */}
                                 <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 20 }}>
-                                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#181D27", marginBottom: 16 }}>Additional Details</h3>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                                        <div>
-                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Created By</span>
-                                            <span style={{ fontSize: 14, color: "#181D27" }}>{formData.createdBy?.name || "—"}</span>
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Created At</span>
-                                            <span style={{ fontSize: 14, color: "#181D27" }}>
-                                                {formData.createdAt ? new Date(formData.createdAt).toLocaleDateString() : "—"}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Last Edited By</span>
-                                            <span style={{ fontSize: 14, color: "#181D27" }}>{formData.lastEditedBy?.name || "—"}</span>
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: 14, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 4 }}>Last Updated</span>
-                                            <span style={{ fontSize: 14, color: "#181D27" }}>
-                                                {formData.updatedAt ? new Date(formData.updatedAt).toLocaleDateString() : "—"}
-                                            </span>
-                                        </div>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                                        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#181D27", margin: 0 }}>Team Access</h3>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditSection("Career Details & Team Access");
+                                                setShowEditModal(true);
+                                            }}
+                                            style={{
+                                                background: "transparent",
+                                                border: "none",
+                                                cursor: "pointer",
+                                                padding: 4
+                                            }}
+                                        >
+                                            <i className="la la-pen" style={{ fontSize: 18, color: "#6B7280" }}></i>
+                                        </button>
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                        {/* Job Owner */}
+                                        {formData.createdBy && (
+                                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                                <div style={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: "50%",
+                                                    background: "#E5E7EB",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    fontSize: 14,
+                                                    fontWeight: 600,
+                                                    color: "#374151"
+                                                }}>
+                                                    {formData.createdBy.name ? formData.createdBy.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase() : "??"}
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 14, color: "#181D27", fontWeight: 500 }}>
+                                                        {formData.createdBy.name || formData.createdBy.email} {formData.createdBy.email === user?.email && "(You)"}
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: "#6B7280" }}>{formData.createdBy.email}</div>
+                                                </div>
+                                                <div style={{ fontSize: 14, color: "#6B7280", fontWeight: 500 }}>
+                                                    Job Owner
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Additional contributors can be added here if available in career data */}
+                                        {formData.lastEditedBy && formData.lastEditedBy.email !== formData.createdBy?.email && (
+                                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                                <div style={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: "50%",
+                                                    background: "#E5E7EB",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    fontSize: 14,
+                                                    fontWeight: 600,
+                                                    color: "#374151"
+                                                }}>
+                                                    {formData.lastEditedBy.name ? formData.lastEditedBy.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase() : "??"}
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 14, color: "#181D27", fontWeight: 500 }}>
+                                                        {formData.lastEditedBy.name || formData.lastEditedBy.email}
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: "#6B7280" }}>{formData.lastEditedBy.email}</div>
+                                                </div>
+                                                <div style={{ fontSize: 14, color: "#6B7280", fontWeight: 500 }}>
+                                                    Contributor
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1415,14 +1476,14 @@ export default function ManageCareerPage() {
                                 {/* Direct Interview Link */}
                                 <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 20 }}>
                                     <h3 style={{ fontSize: 16, fontWeight: 600, color: "#181D27", marginBottom: 16 }}>Direct Interview Link</h3>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                                         <input
                                             type="text"
                                             value={formData.directInterviewLink || "Not set"}
                                             readOnly
                                             style={{
                                                 flex: 1,
-                                                padding: "8px 12px",
+                                                padding: "10px 12px",
                                                 fontSize: 14,
                                                 border: "1px solid #E5E7EB",
                                                 borderRadius: 8,
@@ -1430,24 +1491,77 @@ export default function ManageCareerPage() {
                                                 color: "#6B7280"
                                             }}
                                         />
-                                        {formData.directInterviewLink && (
-                                            <button
-                                                onClick={() => {
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(formData.directInterviewLink || "");
+                                            }}
+                                            style={{
+                                                padding: "8px 12px",
+                                                background: "transparent",
+                                                color: "#6B7280",
+                                                border: "1px solid #E5E7EB",
+                                                borderRadius: 8,
+                                                cursor: "pointer",
+                                                fontSize: 14,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center"
+                                            }}
+                                        >
+                                            <i className="la la-copy" style={{ fontSize: 18 }}></i>
+                                        </button>
+                                    </div>
+                                    <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>
+                                        Share the link to an applicant for a direct interview.
+                                    </p>
+                                    <div style={{ display: "flex", gap: 12 }}>
+                                        <button
+                                            onClick={() => {
+                                                if (formData.directInterviewLink) {
                                                     window.open(formData.directInterviewLink, "_blank");
-                                                }}
-                                                style={{
-                                                    padding: "8px 12px",
-                                                    background: "#000",
-                                                    color: "#fff",
-                                                    border: "none",
-                                                    borderRadius: 8,
-                                                    cursor: "pointer",
-                                                    fontSize: 14
-                                                }}
-                                            >
-                                                <i className="la la-external-link-alt"></i>
-                                            </button>
-                                        )}
+                                                }
+                                            }}
+                                            disabled={!formData.directInterviewLink}
+                                            style={{
+                                                flex: 1,
+                                                padding: "10px 16px",
+                                                background: "#fff",
+                                                color: "#181D27",
+                                                border: "1px solid #E5E7EB",
+                                                borderRadius: 8,
+                                                cursor: formData.directInterviewLink ? "pointer" : "not-allowed",
+                                                fontSize: 14,
+                                                fontWeight: 500,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                gap: 8,
+                                                opacity: formData.directInterviewLink ? 1 : 0.5
+                                            }}
+                                        >
+                                            <i className="la la-external-link-alt"></i>
+                                            Open link
+                                        </button>
+                                        <button
+                                            style={{
+                                                flex: 1,
+                                                padding: "10px 16px",
+                                                background: "#FEF2F2",
+                                                color: "#DC2626",
+                                                border: "1px solid #FEE2E2",
+                                                borderRadius: 8,
+                                                cursor: "pointer",
+                                                fontSize: 14,
+                                                fontWeight: 500,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                gap: 8
+                                            }}
+                                        >
+                                            <i className="la la-link-slash"></i>
+                                            Disable link
+                                        </button>
                                     </div>
                                 </div>
 
