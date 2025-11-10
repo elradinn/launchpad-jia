@@ -234,15 +234,14 @@ export default function () {
           const ids = career.preScreeningQuestions.map(q => q.id);
           const hasDuplicates = ids.length !== new Set(ids).size;
           
-          let normalizedQuestions = career.preScreeningQuestions;
-          if (hasDuplicates) {
-            console.log("Duplicate IDs detected, normalizing...");
-            const baseId = Date.now();
-            normalizedQuestions = career.preScreeningQuestions.map((q, index) => ({
-              ...q,
-              id: baseId + index
-            }));
-          }
+          let normalizedQuestions = career.preScreeningQuestions.map((q, index) => ({
+            ...q,
+            id: hasDuplicates ? Date.now() + index : q.id,
+            order: q.order ?? index
+          }));
+          
+          // Sort by order to respect the ordering set in CareerFormV2
+          normalizedQuestions.sort((a, b) => a.order - b.order);
           
           setPreScreeningQuestions(normalizedQuestions);
           console.log("Set pre-screening questions:", normalizedQuestions);

@@ -122,10 +122,12 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 ...q,
                 id: hasDuplicates ? Date.now() + index : q.id,
                 question: decodeHTMLEntities(q.question || ""),
-                options: q.options?.map(opt => decodeHTMLEntities(opt || "")) || []
+                options: q.options?.map(opt => decodeHTMLEntities(opt || "")) || [],
+                order: q.order ?? index
             }));
             
-            return decodedQuestions;
+            // Sort by order
+            return decodedQuestions.sort((a, b) => a.order - b.order);
         }
         
         // Default questions with unique IDs
@@ -138,6 +140,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 options: ["Immediately", "< 30 days", "> 30 days"],
                 rangeMin: "",
                 rangeMax: "",
+                order: 0,
             },
             {
                 id: baseId + 1,
@@ -146,6 +149,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 options: ["At most 1-2x a week", "At most 3-4x a week", "Open to fully onsite work", "Only open to fully remote work"],
                 rangeMin: "",
                 rangeMax: "",
+                order: 1,
             },
             {
                 id: baseId + 2,
@@ -154,6 +158,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                 options: [],
                 rangeMin: "40000",
                 rangeMax: "60000",
+                order: 2,
             },
         ];
     });
@@ -162,6 +167,8 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
         { id: "worksetup", title: "Work Setup", question: "Are you willing to report to the office when required?", added: true },
         { id: "salary", title: "Asking Salary", question: "How much is your expected monthly salary?", added: true },
     ]);
+    const [draggedQuestionId, setDraggedQuestionId] = useState<number | null>(null);
+    const [draggedOptionIndex, setDraggedOptionIndex] = useState<{questionId: number, optionIndex: number} | null>(null);
     const [pipelineStages, setPipelineStages] = useState([
         {
             id: 1,
@@ -373,6 +380,7 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
             options: [],
             rangeMin: "",
             rangeMax: "",
+            order: preScreeningQuestions.length,
         };
         setPreScreeningQuestions([...preScreeningQuestions, newQuestion]);
     }
@@ -384,7 +392,91 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
     }
 
     function deletePreScreeningQuestion(id: number) {
-        setPreScreeningQuestions(preScreeningQuestions.filter(q => q.id !== id));
+        const filtered = preScreeningQuestions.filter(q => q.id !== id);
+        // Reorder remaining questions
+        const reordered = filtered.map((q, index) => ({ ...q, order: index }));
+        setPreScreeningQuestions(reordered);
+    }
+
+    function handleDragStart(e: React.DragEvent, questionId: number) {
+        setDraggedQuestionId(questionId);
+        e.dataTransfer.effectAllowed = "move";
+    }
+
+    function handleDragOver(e: React.DragEvent) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    }
+
+    function handleDrop(e: React.DragEvent, targetQuestionId: number) {
+        e.preventDefault();
+        
+        if (draggedQuestionId === null || draggedQuestionId === targetQuestionId) {
+            setDraggedQuestionId(null);
+            return;
+        }
+
+        const draggedIndex = preScreeningQuestions.findIndex(q => q.id === draggedQuestionId);
+        const targetIndex = preScreeningQuestions.findIndex(q => q.id === targetQuestionId);
+
+        if (draggedIndex === -1 || targetIndex === -1) {
+            setDraggedQuestionId(null);
+            return;
+        }
+
+        const newQuestions = [...preScreeningQuestions];
+        const [draggedQuestion] = newQuestions.splice(draggedIndex, 1);
+        newQuestions.splice(targetIndex, 0, draggedQuestion);
+
+        // Update order property
+        const reordered = newQuestions.map((q, index) => ({ ...q, order: index }));
+        setPreScreeningQuestions(reordered);
+        setDraggedQuestionId(null);
+    }
+
+    function handleDragEnd() {
+        setDraggedQuestionId(null);
+    }
+
+    function handleOptionDragStart(e: React.DragEvent, questionId: number, optionIndex: number) {
+        e.stopPropagation();
+        setDraggedOptionIndex({ questionId, optionIndex });
+        e.dataTransfer.effectAllowed = "move";
+    }
+
+    function handleOptionDragOver(e: React.DragEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "move";
+    }
+
+    function handleOptionDrop(e: React.DragEvent, questionId: number, targetOptionIndex: number) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!draggedOptionIndex || draggedOptionIndex.questionId !== questionId || draggedOptionIndex.optionIndex === targetOptionIndex) {
+            setDraggedOptionIndex(null);
+            return;
+        }
+
+        const question = preScreeningQuestions.find(q => q.id === questionId);
+        if (!question || !question.options) {
+            setDraggedOptionIndex(null);
+            return;
+        }
+
+        const newOptions = [...question.options];
+        const [draggedOption] = newOptions.splice(draggedOptionIndex.optionIndex, 1);
+        newOptions.splice(targetOptionIndex, 0, draggedOption);
+
+        setPreScreeningQuestions(preScreeningQuestions.map(q =>
+            q.id === questionId ? { ...q, options: newOptions } : q
+        ));
+        setDraggedOptionIndex(null);
+    }
+
+    function handleOptionDragEnd() {
+        setDraggedOptionIndex(null);
     }
 
     function addOption(questionId: number) {
@@ -1357,14 +1449,41 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                 <div className="layered-card-content">
                                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                         {preScreeningQuestions.map((question, qIndex) => (
-                                            <div key={question.id} style={{
-                                                background: "#F9FAFB",
-                                                border: "1px solid #E5E7EB",
-                                                borderRadius: 12,
-                                                padding: 16
+                                            <div 
+                                                key={question.id} 
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, question.id)}
+                                                onDragOver={handleDragOver}
+                                                onDrop={(e) => handleDrop(e, question.id)}
+                                                onDragEnd={handleDragEnd}
+                                                style={{
+                                                    background: draggedQuestionId === question.id ? "#F3F4F6" : "#F9FAFB",
+                                                    border: draggedQuestionId === question.id ? "2px dashed #6B7280" : "1px solid #E5E7EB",
+                                                    borderRadius: 12,
+                                                    padding: 16,
+                                                    opacity: draggedQuestionId === question.id ? 0.5 : 1,
+                                                    cursor: "move",
+                                                    transition: "all 0.2s ease"
                                             }}>
                                                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
-                                                    <i className="la la-grip-vertical" style={{ color: "#9CA3AF", fontSize: 20, cursor: "grab", marginTop: 8 }}></i>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                        <i className="la la-grip-vertical" style={{ color: "#9CA3AF", fontSize: 20, cursor: "grab", marginTop: 8 }}></i>
+                                                        <span style={{ 
+                                                            minWidth: 24, 
+                                                            height: 24, 
+                                                            background: "#fff", 
+                                                            border: "1px solid #D1D5DB", 
+                                                            borderRadius: "50%", 
+                                                            display: "flex", 
+                                                            alignItems: "center", 
+                                                            justifyContent: "center", 
+                                                            fontSize: 12, 
+                                                            color: "#6B7280", 
+                                                            fontWeight: 600 
+                                                        }}>
+                                                            {qIndex + 1}
+                                                        </span>
+                                                    </div>
                                                     <input
                                                         className="form-control"
                                                         placeholder="Enter your question"
@@ -1391,7 +1510,26 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
                                                 {question.type === "Dropdown" && (
                                                     <div style={{ marginLeft: 32 }}>
                                                         {question.options.map((option, optIndex) => (
-                                                            <div key={optIndex} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                                                            <div 
+                                                                key={optIndex} 
+                                                                draggable
+                                                                onDragStart={(e) => handleOptionDragStart(e, question.id, optIndex)}
+                                                                onDragOver={handleOptionDragOver}
+                                                                onDrop={(e) => handleOptionDrop(e, question.id, optIndex)}
+                                                                onDragEnd={handleOptionDragEnd}
+                                                                style={{ 
+                                                                    display: "flex", 
+                                                                    alignItems: "center", 
+                                                                    gap: 8, 
+                                                                    marginBottom: 8,
+                                                                    padding: "4px",
+                                                                    borderRadius: "6px",
+                                                                    background: draggedOptionIndex?.questionId === question.id && draggedOptionIndex?.optionIndex === optIndex ? "#F3F4F6" : "transparent",
+                                                                    opacity: draggedOptionIndex?.questionId === question.id && draggedOptionIndex?.optionIndex === optIndex ? 0.5 : 1,
+                                                                    cursor: "move",
+                                                                    transition: "all 0.2s ease"
+                                                                }}>
+                                                                <i className="la la-grip-vertical" style={{ color: "#D1D5DB", fontSize: 16, cursor: "grab" }}></i>
                                                                 <span style={{
                                                                     minWidth: 24,
                                                                     height: 24,
