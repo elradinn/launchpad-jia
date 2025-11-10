@@ -15,6 +15,14 @@ import axios from "axios";
 import CareerActionModal from "./CareerActionModal";
 import FullScreenLoadingAnimation from "./FullScreenLoadingAnimation";
 
+// Helper function to decode HTML entities
+const decodeHTMLEntities = (text: string): string => {
+    if (!text || typeof text !== 'string') return text || '';
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+};
+
 const step = ["Career Details & Team Access", "CV Review & Pre-screening", "AI Interview Setup", "Pipeline Stages", "Review Career"];
 
 const reviewSections = ["Career Details & Team Access", "CV Review & Pre-screening", "AI Interview Setup", "Pipeline Stages"];
@@ -109,14 +117,15 @@ export default function CareerFormV2({ career, mode = "create", initialSection, 
             const ids = career.preScreeningQuestions.map(q => q.id);
             const hasDuplicates = ids.length !== new Set(ids).size;
             
-            if (hasDuplicates) {
-                const baseId = Date.now();
-                return career.preScreeningQuestions.map((q, index) => ({
-                    ...q,
-                    id: baseId + index
-                }));
-            }
-            return career.preScreeningQuestions;
+            // Decode HTML entities in questions and options
+            const decodedQuestions = career.preScreeningQuestions.map((q, index) => ({
+                ...q,
+                id: hasDuplicates ? Date.now() + index : q.id,
+                question: decodeHTMLEntities(q.question || ""),
+                options: q.options?.map(opt => decodeHTMLEntities(opt || "")) || []
+            }));
+            
+            return decodedQuestions;
         }
         
         // Default questions with unique IDs

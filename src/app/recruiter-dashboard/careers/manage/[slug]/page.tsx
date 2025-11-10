@@ -19,6 +19,14 @@ import { candidateActionToast, errorToast, getStage } from "@/lib/Utils";
 import { Tooltip } from "react-tooltip";
 import CareerFormV2 from "@/lib/components/CareerComponents/CareerFormV2";
 
+// Helper function to decode HTML entities
+const decodeHTMLEntities = (text: string): string => {
+    if (!text || typeof text !== 'string') return text || '';
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+};
+
 export default function ManageCareerPage() {
     const { slug } = useParams();
     const searchParams = useSearchParams();
@@ -268,6 +276,14 @@ export default function ManageCareerPage() {
 
                 setCareer(response.data);
                 const deepCopy = JSON.parse(JSON.stringify(response.data?.questions ?? []));
+                
+                // Decode HTML entities in pre-screening questions
+                const decodedPreScreeningQuestions = response.data?.preScreeningQuestions?.map((q: any) => ({
+                    ...q,
+                    question: decodeHTMLEntities(q.question || ""),
+                    options: q.options?.map((opt: string) => decodeHTMLEntities(opt || "")) || []
+                })) || [];
+                
                 setFormData({
                     _id: response.data?._id || "",
                     jobTitle: response.data?.jobTitle || "",
@@ -291,7 +307,7 @@ export default function ManageCareerPage() {
                     employmentType: response.data?.employmentType || "Full-time",
                     orgID: response.data?.orgID || "",
                     unpublishedLatestStep: response.data?.unpublishedLatestStep || "Career Details & Team Access",
-                    preScreeningQuestions: response.data?.preScreeningQuestions || [],
+                    preScreeningQuestions: decodedPreScreeningQuestions,
                 });
                 if (tab === "edit") {
                     setActiveTab("job-description");
