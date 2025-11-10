@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
 // Define the shape of the context data
@@ -36,7 +35,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [theme, setTheme] = useState("light");
   const [orgID, setOrgID] = useState("");
-  const searchParams = useSearchParams();
   const [activeOrg, setActiveOrg] = useLocalStorage("activeOrg", null);
 
   // Add any initialization logic here
@@ -55,16 +53,10 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   React.useEffect(() => {
-    const orgIDParams = searchParams.get("orgID");
-
-    if (orgIDParams) {
-      setOrgID(orgIDParams);
-    }
-
     if (activeOrg) {
       setOrgID(activeOrg._id);
     }
-  }, [activeOrg, searchParams]);
+  }, [activeOrg]);
 
   // The value to be provided to consuming components
   const contextValue = {
