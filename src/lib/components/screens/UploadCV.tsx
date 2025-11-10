@@ -27,6 +27,13 @@ export default function () {
   const [userCV, setUserCV] = useState(null);
   const [preScreeningQuestions, setPreScreeningQuestions] = useState([]);
   const [preScreeningAnswers, setPreScreeningAnswers] = useState({});
+
+  // Helper function to decode HTML entities
+  const decodeHtmlEntities = (text: string) => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
   const cvSections = [
     "Introduction",
     "Current Position",
@@ -228,11 +235,11 @@ export default function () {
           
           // Initialize answers object
           const initialAnswers = {};
-          career.preScreeningQuestions.forEach((q) => {
+          career.preScreeningQuestions.forEach((q, index) => {
             if (q.type === "Range") {
-              initialAnswers[q.id] = { min: "", max: "" };
+              initialAnswers[index] = { min: "", max: "" };
             } else {
-              initialAnswers[q.id] = "";
+              initialAnswers[index] = "";
             }
           });
           setPreScreeningAnswers(initialAnswers);
@@ -348,11 +355,11 @@ export default function () {
 
   function handlePreScreeningSubmit() {
     // Validate all questions are answered
-    const unanswered = preScreeningQuestions.filter((q) => {
+    const unanswered = preScreeningQuestions.filter((q, index) => {
       if (q.type === "Range") {
-        return !preScreeningAnswers[q.id]?.min || !preScreeningAnswers[q.id]?.max;
+        return !preScreeningAnswers[index]?.min || !preScreeningAnswers[index]?.max;
       }
-      return !preScreeningAnswers[q.id];
+      return !preScreeningAnswers[index];
     });
 
     if (unanswered.length > 0) {
@@ -718,7 +725,7 @@ export default function () {
               </div>
 
               {preScreeningQuestions.map((question, index) => (
-                <div key={question.id} className={styles.gradient}>
+                <div key={index} className={styles.gradient}>
                   <div className={styles.cvDetailsCard}>
                     <span className={styles.sectionTitle}>
                       {question.question}
@@ -726,11 +733,11 @@ export default function () {
                     <div className={styles.detailsContainer}>
                       {question.type === "Dropdown" ? (
                         <select
-                          value={preScreeningAnswers[question.id] || ""}
+                          value={preScreeningAnswers[index] || ""}
                           onChange={(e) =>
                             setPreScreeningAnswers({
                               ...preScreeningAnswers,
-                              [question.id]: e.target.value,
+                              [index]: e.target.value,
                             })
                           }
                           style={{
@@ -745,7 +752,7 @@ export default function () {
                           <option value="">Select an option</option>
                           {question.options.map((option, idx) => (
                             <option key={idx} value={option}>
-                              {option}
+                              {decodeHtmlEntities(option)}
                             </option>
                           ))}
                         </select>
@@ -762,12 +769,12 @@ export default function () {
                               <input
                                 type="number"
                                 placeholder="0"
-                                value={preScreeningAnswers[question.id]?.min || ""}
+                                value={preScreeningAnswers[index]?.min || ""}
                                 onChange={(e) =>
                                   setPreScreeningAnswers({
                                     ...preScreeningAnswers,
-                                    [question.id]: {
-                                      ...preScreeningAnswers[question.id],
+                                    [index]: {
+                                      ...preScreeningAnswers[index],
                                       min: e.target.value,
                                     },
                                   })
@@ -793,12 +800,12 @@ export default function () {
                               <input
                                 type="number"
                                 placeholder="0"
-                                value={preScreeningAnswers[question.id]?.max || ""}
+                                value={preScreeningAnswers[index]?.max || ""}
                                 onChange={(e) =>
                                   setPreScreeningAnswers({
                                     ...preScreeningAnswers,
-                                    [question.id]: {
-                                      ...preScreeningAnswers[question.id],
+                                    [index]: {
+                                      ...preScreeningAnswers[index],
                                       max: e.target.value,
                                     },
                                   })
@@ -818,11 +825,11 @@ export default function () {
                         <input
                           type="text"
                           placeholder="Type your answer here"
-                          value={preScreeningAnswers[question.id] || ""}
+                          value={preScreeningAnswers[index] || ""}
                           onChange={(e) =>
                             setPreScreeningAnswers({
                               ...preScreeningAnswers,
-                              [question.id]: e.target.value,
+                              [index]: e.target.value,
                             })
                           }
                           style={{
