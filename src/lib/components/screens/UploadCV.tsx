@@ -235,11 +235,11 @@ export default function () {
           
           // Initialize answers object
           const initialAnswers = {};
-          career.preScreeningQuestions.forEach((q, index) => {
+          career.preScreeningQuestions.forEach((q) => {
             if (q.type === "Range") {
-              initialAnswers[index] = { min: "", max: "" };
+              initialAnswers[q.id] = { min: "", max: "" };
             } else {
-              initialAnswers[index] = "";
+              initialAnswers[q.id] = "";
             }
           });
           setPreScreeningAnswers(initialAnswers);
@@ -355,11 +355,11 @@ export default function () {
 
   function handlePreScreeningSubmit() {
     // Validate all questions are answered
-    const unanswered = preScreeningQuestions.filter((q, index) => {
+    const unanswered = preScreeningQuestions.filter((q) => {
       if (q.type === "Range") {
-        return !preScreeningAnswers[index]?.min || !preScreeningAnswers[index]?.max;
+        return !preScreeningAnswers[q.id]?.min || !preScreeningAnswers[q.id]?.max;
       }
-      return !preScreeningAnswers[index];
+      return !preScreeningAnswers[q.id];
     });
 
     if (unanswered.length > 0) {
@@ -733,11 +733,11 @@ export default function () {
                     <div className={styles.detailsContainer}>
                       {question.type === "Dropdown" ? (
                         <select
-                          value={preScreeningAnswers[index] || ""}
+                          value={preScreeningAnswers[question.id] || ""}
                           onChange={(e) =>
                             setPreScreeningAnswers({
                               ...preScreeningAnswers,
-                              [index]: e.target.value,
+                              [question.id]: e.target.value,
                             })
                           }
                           style={{
@@ -769,12 +769,12 @@ export default function () {
                               <input
                                 type="number"
                                 placeholder="0"
-                                value={preScreeningAnswers[index]?.min || ""}
+                                value={preScreeningAnswers[question.id]?.min || ""}
                                 onChange={(e) =>
                                   setPreScreeningAnswers({
                                     ...preScreeningAnswers,
-                                    [index]: {
-                                      ...preScreeningAnswers[index],
+                                    [question.id]: {
+                                      ...preScreeningAnswers[question.id],
                                       min: e.target.value,
                                     },
                                   })
@@ -800,12 +800,12 @@ export default function () {
                               <input
                                 type="number"
                                 placeholder="0"
-                                value={preScreeningAnswers[index]?.max || ""}
+                                value={preScreeningAnswers[question.id]?.max || ""}
                                 onChange={(e) =>
                                   setPreScreeningAnswers({
                                     ...preScreeningAnswers,
-                                    [index]: {
-                                      ...preScreeningAnswers[index],
+                                    [question.id]: {
+                                      ...preScreeningAnswers[question.id],
                                       max: e.target.value,
                                     },
                                   })
@@ -825,11 +825,11 @@ export default function () {
                         <input
                           type="text"
                           placeholder="Type your answer here"
-                          value={preScreeningAnswers[index] || ""}
+                          value={preScreeningAnswers[question.id] || ""}
                           onChange={(e) =>
                             setPreScreeningAnswers({
                               ...preScreeningAnswers,
-                              [index]: e.target.value,
+                              [question.id]: e.target.value,
                             })
                           }
                           style={{

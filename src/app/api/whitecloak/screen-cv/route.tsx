@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     let preScreeningText = "";
     if (preScreeningAnswers && interviewData.preScreeningQuestions) {
-        preScreeningText = "\n    Pre-screening Questions & Answers:\n";
+        preScreeningText = "";
         interviewData.preScreeningQuestions.forEach((question) => {
             const answer = preScreeningAnswers[question.id];
             let formattedAnswer = "";
